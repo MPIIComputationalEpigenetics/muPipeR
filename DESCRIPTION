@@ -1,0 +1,26 @@
+Package: muPipeR
+Title: muPipeR
+Description: Analysis pipelines in R
+Authors@R: c(
+    person("Fabian", "Mueller", email = "fmueller@mpi-inf.mpg.de",
+    role = c("aut", "cre")))
+Date: 2016-02-22
+License: GPL-3
+Version: 0.1
+Depends:
+    RnBeads
+Imports:
+    igraph
+Suggests:
+    argparse
+Collate:
+    'classDefs.R'
+    'config.R'
+    'utils.R'
+    'JobResult-class.R'
+    'Job-class.R'
+    'CommandR-class.R'
+    'CommandRsystem-class.R'
+    'CommandRsge-class.R'
+    'PipR-class.R'
+RoxygenNote: 5.0.1
