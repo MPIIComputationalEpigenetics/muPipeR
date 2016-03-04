@@ -55,6 +55,8 @@ variable | description
 --- | ---
 `${STEPDIR}` | result directory of the given analysis step
 `${STEPDIR:stepname}` | result directory of a specific analysis step with name `stepname`
+`${BASEDIR}` | base analysis directory of the pipeline object
+`${TEMPDIR}` | temporary directory of the pipeline object
 
 Add an analysis step with multiple jobs. Here, we create 5 additional empty files
 ```{r}

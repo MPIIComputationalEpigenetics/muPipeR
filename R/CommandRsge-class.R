@@ -35,15 +35,21 @@ setMethod("initialize","CommandRsge",
 			logDir <- tempdir()
 			logger.warning(c("Did not specify directory for logging. --> using directory:", logDir))
 		}
+		if (!is.null(req)){
+			if (any(is.na(names(req))) || is.null(names(req))){
+				logger.error("Invalid resource requirement specification. Need names for all requirements")
+			}
+		}
 		.Object <- callNextMethod(.Object)
 		.Object@logDir <- logDir
 		.Object@handlesJobDeps <- TRUE
+		.Object@req <- req
 		.Object
 	}
 )
 #' @param logDir logging directory
 #' @param req default resource requirements. Will be specified for each submitted job, if no
-#'            other requirements are specified.
+#'            other requirements are specified. Must be a named character vector.
 #' 
 #' @name CommandRsge
 #' @rdname CommandRsge-class
@@ -51,7 +57,7 @@ setMethod("initialize","CommandRsge",
 #' @export
 CommandRsge <- function(logDir=NULL, req=NULL){
 	obj <- new("CommandRsge",
-		logDir
+		logDir, req
 	)
 	return(obj)
 }
@@ -62,17 +68,17 @@ CommandRsge <- function(logDir=NULL, req=NULL){
 #' 
 #' Query the grid engine using qstat and retrieve the status (known or unknown) 
 #' of the job for a given job id
-#' @param jid   job id
+#' @param jids   job id(s)
 #' @return a character string: "known" if the job is still known to the grid engine
 #'         (running or scheduled). "unknown" if not.
 #' @author Fabian Mueller
 #' @noRd
-getSgeJobStatus <- function(jid){
+getSgeJobStatus <- function(jids){
 	require(XML)
 	stateXmlStr <- system2("qstat", c("-xml"), stdout=TRUE)
 	stateXml <- xmlToList(xmlParse(stateXmlStr), simplify=FALSE)
 	
-	jobList <- stateXml[["queue_info"]]
+	jobList <- c(stateXml[["queue_info"]], stateXml[["job_info"]])
 	if (is.null(jobList)) logger.error("failed to get proper info using qstat")
 	jobNames <- vapply(jobList, FUN=function(x){
 		if (is.element("JB_name", names(x))){
@@ -80,11 +86,8 @@ getSgeJobStatus <- function(jid){
 		}
 		return(as.character(NA))
 	}, character(1))
-	if (is.element(jid, jobNames)){
-		return("known")
-	} else {
-		return("unknown")
-	}
+	res <- ifelse(jids %in% jobNames, "known", "unknown")
+	return(res)
 }
 #' waitForJobsToTerminate
 #' 
@@ -105,7 +108,7 @@ waitForJobsToTerminate <- function(jids){
 	jids.invalid <- jids
 	while (initialize.iter > 0 && length(jids.invalid) > 0){
 		Sys.sleep(initialize.lag)
-		jobStatus <- sapply(jids.invalid, getSgeJobStatus)
+		jobStatus <- getSgeJobStatus(jids.invalid)
 		jids.valid <- jids.invalid[jobStatus %in% c("known")]
 		jids.invalid <- setdiff(jids.invalid, jids.valid)
 		initialize.iter <- initialize.iter - 1
@@ -113,6 +116,7 @@ waitForJobsToTerminate <- function(jids){
 	if (length(jids.invalid) > 0){
 		logger.error(c("Could not retrieve status for the following jobs (already finished?):", paste(jids.invalid, collapse=",")))
 	}
+	logger.status("Waiting for jobs to complete...")
 	# wait for jobs to complete:
 	# check status of jobs until they become unknown to the grid engine
 	jids.incomplete <- jids
@@ -128,17 +132,30 @@ waitForJobsToTerminate <- function(jids){
 #' 
 #' Construct a submission string for a given \code{\linkS4class{Job}} object
 #' and submit it using qsub and a system call.
+#' @details
+#' If the length of the command string of the job exceeds 1024 characters, it will be be
+#' automatically be written to a shell script in the \code{shellScriptDir} directory
+#' and the submitted job will execute this script file instead of the command directly.
 #' @param job     \code{\linkS4class{Job}} object
 #' @param logFile a log file where the output of job should be written to
 #' @param errFile a error file where the error stream of the job should be written to
 #' @param jobName a name for the submitted job
-#' @param req     resource requirements for the submitted job
+#' @param req     resource requirements for the submitted job. Must be a named character vector.
+#' @param shellScriptDir directory where the shell script containing the command will be written
+#'                to if the submitted command is too long for binary submission
 #' @return the result of the system call using \link{system2}
 #' @author Fabian Mueller
 #' @noRd
-doQsub <- function(job, logFile, errFile, jobName=getId(job), req=NULL){
-	reqToken <- NULL
-	if (length(req) > 0) reqToken <- c("-V", req)
+doQsub <- function(job, logFile, errFile, jobName=getId(job), req=NULL, shellScriptDir=NULL){
+	longCommandThres <- 1024L #submit via shell script if command length is longer than this
+	reqTokens <- NULL
+	if (length(req) > 0) {
+		if (any(is.na(names(req))) || is.null(names(req))){
+			logger.error("Invalid resource requirement specification. Need names for all requirements")
+		}
+		rr <- as.vector(rbind(rep("-l",length(req)),paste0(names(req),"=",req)))
+		reqTokens <- c(reqTokens, rr)
+	}
 
 	depJobIds <- do.call("c", lapply(getDepJobs(job), getId))
 	depToken <- NULL
@@ -146,20 +163,49 @@ doQsub <- function(job, logFile, errFile, jobName=getId(job), req=NULL){
 		depToken <- c("-hold_jid", paste0(paste(depJobIds, collapse=",")))
 	}
 	nameToken <- NULL
-	if (!is.null(jobName)) nameToken <-c("-N", jid)
+	if (!is.null(jobName)) nameToken <-c("-N", jobName)
 
-	cmd <- "qsub"
+	binSubmitToken <- "-b y"
+	shellScriptSub <- FALSE
+	runCmd <- getCallString(job)
+	# check if the length of the command string exceeds the threshold
+	# if it does, redirect the command to a shell script instead of executing it binary
+	if (nchar(runCmd) > longCommandThres){
+		if (is.null(shellScriptDir) || !dir.exists(shellScriptDir)){
+			logger.warning(c("The command to submit exceeds", longCommandThres,
+				"characters but no directory for shell script submission has been specified or it does not exist."))
+		} else {
+			scrptFn <- NULL
+			if (!is.null(jobName)) {
+				scrptFn <- file.path(shellScriptDir, paste0(jobName,".sh"))
+			} else {
+				scrptFn <- tempfile(pattern="scrpt", tmpdir=shellScriptDir, fileext=".sh")
+			}
+			fileConn <- file(scrptFn)
+			writeLines(c("#!/bin/sh", runCmd), fileConn)
+			close(fileConn)
+			Sys.chmod(scrptFn, mode = "0755")
+			runCmd <- scrptFn
+			binSubmitToken <- "-b n"
+			shellScriptSub <- FALSE
+		}
+	}
+	if (!shellScriptSub){
+		runCmd <- paste0("'", runCmd, "'")
+	}
+	qsubCmd <- "qsub"
 	args <- c(
-		reqToken, #resource requirements
+		reqTokens, #resource requirements
 		"-o", logFile, #log file
 		"-e", errFile, #error stream file
 		# "-j y", #merge standard error and output stram
 		nameToken, #job id
 		depToken, #job ids the current job depends on
-		"-b y", #binary submission
-		paste0("'", getCallString(job), "'")
+		"-V", #environment variables exported into jobs
+		binSubmitToken, #binary submission or shell script
+		runCmd
 	)
-	subRes <- system2(cmd, args)
+	subRes <- system2(qsubCmd, args)
 	return(subRes)
 }
 ################################################################################
@@ -176,6 +222,7 @@ doQsub <- function(job, logFile, errFile, jobName=getId(job), req=NULL){
 #' @param result   Flag indicating whether the result should be returned
 #' @param wait     Flag indicating whether the session should wait for the job to finish before continuing. Will be set to \code{TRUE}
 #'                 if \code{result} is \code{TRUE}
+#' @param req      Resource requirements to the grid engine when submitting the job. Must be a named character vector.
 #' @return \code{\linkS4class{JobResult}} object
 #'
 #' @rdname exec-CommandRsge-method
@@ -204,12 +251,13 @@ setMethod("exec",
 		logFile   <- logStruct$logFile
 		errFile   <- logStruct$errFile
 		jid       <- logStruct$jobId
+		scrptDir  <- logStruct$logDir
 
 		sysOut <- character()
 		sysErr <- character()
 		sysStatus <- 0L
 
-		subRes <- doQsub(job, logFile, errFile, jobName=jid, req=req)
+		subRes <- doQsub(job, logFile, errFile, jobName=jid, req=req, shellScriptDir=scrptDir)
 
 		if (wait){
 			waitForJobsToTerminate(jid)
@@ -235,7 +283,7 @@ setMethod("exec",
 #' @param result   Flag indicating whether the result should be returned
 #' @param wait     Flag indicating whether the session should wait for the job to finish before continuing. Will be set to \code{TRUE}
 #'                 if \code{result} is \code{TRUE}
-#' @param req      Resource requirements to the grid engine when submitting the job
+#' @param req      Resource requirements to the grid engine when submitting the job. Must be a named character vector.
 #' @return a list of \code{\linkS4class{JobResult}} objects
 #'
 #' @rdname lexec-CommandRsge-method
@@ -265,7 +313,8 @@ setMethod("lexec",
 			logFile   <- logStruct$logFile
 			errFile   <- logStruct$errFile
 			jid       <- logStruct$jobId
-			subRes <- doQsub(jj, logFile, errFile, jobName=jid, req=req)
+			scrptDir  <- logStruct$logDir
+			subRes <- doQsub(jj, logFile, errFile, jobName=jid, req=req, shellScriptDir=scrptDir)
 			rr <- list(
 				jobId=jid,
 				logFile=logFile,

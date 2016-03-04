@@ -42,7 +42,6 @@
 #'		\code{igraph} graph representation storing all steps in the pipeline as nodes
 #'      and step dependencies as edges.
 #'   }
-
 #' }
 #'
 #' @section Methods:
@@ -214,27 +213,21 @@ setMethod("getSteps",
 		res <- names(object@steps)
 		if (graphOrder){
 			g <- object@graph
+			allSteps <- V(g)$name
 			res <- c()
+			hasUnvisitedSteps <- length(setdiff(allSteps, res)) > 0
+			while (hasUnvisitedSteps){
 			#find the sources in the pipeline graph
-			isSourceNode <- sapply(V(g)$name, FUN=function(v){
-				length(neighbors(g, v, mode="in")) == 0
-			})
-			sourceNodes <- V(g)$name[isSourceNode]
-			if (length(sourceNodes) < 1){
-				logger.error("No sources found in pipeline graph")
-			}
-			# perform DFS on all sources to get all nodes
-			res <- do.call("c", lapply(sourceNodes, FUN=function(v){
-				oo <- dfs(g, v, unreachable=FALSE)$order
-				oo <- oo[!is.na(oo)]
-				return(oo$name)
-			}))
-			# remove nodes visited multiple times, i.e. steps with multiple dependencies
-			# only keeping the last occurrence in order to guarantee that ALL
-			# predecessor steps are visited first
-			res <- res[!duplicated(res, fromLast=TRUE)]
-			if (length(setdiff(names(object@steps), res)) > 0){
-				logger.error("Did not reach all steps in pipeline graph")
+				isSourceNode <- sapply(V(g)$name, FUN=function(v){
+					length(neighbors(g, v, mode="in")) == 0
+				})
+				sourceNodes <- V(g)$name[isSourceNode]
+				if (length(sourceNodes) < 1){
+					logger.error("No sources found in pipeline graph. Is the graph really a DAG?")
+				}
+				res <- c(res, sourceNodes)
+				g <- delete_vertices(g, sourceNodes)
+				hasUnvisitedSteps <- length(setdiff(allSteps, res)) > 0
 			}
 		}
 		stepStates <- vapply(object@steps, FUN=function(x){x[["status"]]}, character(1))
@@ -277,6 +270,7 @@ setMethod("getGraph",
 	function(
 		object
 	) {
+		require(igraph)
 		return(object@graph)
 	}
 )
@@ -314,6 +308,7 @@ setMethod("plotGraph",
 		object,
 		activeSteps=character()
 	) {
+		require(igraph)
 		if (!all(activeSteps %in% getSteps(object))){
 			logger.error("Unknown analysis steps")
 		}
@@ -496,9 +491,9 @@ setMethod("parseJobStrings",
 		jobStrings,
 		step=NULL
 	) {
-		pattern.stepdir <- "\\$\\{STEPDIR\\}"
 		res <- jobStrings
 		if (!is.null(step)){
+			pattern.stepdir <- "\\$\\{STEPDIR\\}"
 			stepDir <- file.path(getDir(object, "result"), step)
 			res <- gsub(pattern.stepdir, stepDir, res)
 		}
@@ -508,6 +503,14 @@ setMethod("parseJobStrings",
 			pattern.stepdir.cur <- paste0("\\$\\{STEPDIR:", ss, "\\}")
 			res <- gsub(pattern.stepdir.cur, stepDir.cur, res)
 		}
+		#base directory
+		pattern.basedir <- "\\$\\{BASEDIR\\}"
+		baseDir <- getDir(object, "base")
+		res <- gsub(pattern.basedir, baseDir, res)
+		#temp directory
+		pattern.tempdir <- "\\$\\{TEMPDIR\\}"
+		tempDir <- getDir(object, "temp")
+		res <- gsub(pattern.tempdir, tempDir, res)
 		return(res)
 	}
 )
@@ -725,6 +728,10 @@ setMethod("run",
 		if (!inherits(cmdr, "CommandR")){
 			logger.error("[run,PipR] Invalid argument: cmdr")
 		}
+		if (saveStatus){
+			fn <- file.path(getDir(object, "status"), "pipr.rds")
+			saveRDS(object, fn)
+		}
 		stepsOrdered <- getSteps(object, graphOrder=TRUE)
 
 		stepRes <- list()
@@ -740,10 +747,15 @@ setMethod("run",
 				}
 
 				jobList <- stepDetails[["jobs"]]
+				unsetDeps <- FALSE
+				# unsetDeps <- !missing(wait) && wait # unset job dependencies if waiting for the previous step anyways
 				for (i in 1:length(jobList)){
 					#parse variables in args
 					if (length(jobList[[i]]@args > 0)){
 						jobList[[i]]@args <- parseJobStrings(object, jobList[[i]]@args, step=step)
+					}
+					if (unsetDeps && length(getDepJobs(jobList[[i]])) > 0){
+						jobList[[i]]@dependsOn <- list()
 					}
 				}
 
