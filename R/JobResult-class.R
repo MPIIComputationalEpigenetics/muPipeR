@@ -13,6 +13,9 @@
 #'   \item{\code{status}}{
 #'		Integer specifying the job's status. \code{0} for success.
 #'   }
+#'   \item{\code{command}}{
+#'		Character storing the command used to run the job.
+#'   }
 #' }
 #'
 #' @section Methods:
@@ -32,9 +35,10 @@
 #' @exportClass JobResult
 setClass("JobResult",
 	slots = list(
-		out    = "character",
-		err    = "character",
-		status = "integer"
+		out     = "character",
+		err     = "character",
+		status  = "integer",
+		command = "character"
 	),
 	package = "muPipeR"
 )
@@ -43,11 +47,13 @@ setMethod("initialize","JobResult",
 		.Object,
 		out=character(),
 		err=character(),
-		status=0L
+		status=0L,
+		command=character()
 	) {
-		.Object@out    <- out
-		.Object@err    <- err
-		.Object@status <- status
+		.Object@out     <- out
+		.Object@err     <- err
+		.Object@status  <- status
+		.Object@command <- command
 		.Object
 	}
 )
@@ -55,14 +61,15 @@ setMethod("initialize","JobResult",
 #'                  character string containing no white spaces.
 #' @param err    Character vector storing errors that occurred during the execution of the job
 #'                  command or tool
+#' @param command    The command used to run the job as character.
 #' @param status Integer specifying the job's status. \code{0} for success.
 #' @name JobResult
 #' @rdname JobResult-class
 #' @aliases intialize,JobResult-method
 #' @export
-JobResult <- function(out=character(), err=character(), status=0L){
+JobResult <- function(out=character(), err=character(), status=0L, command=character()){
 	obj <- new("JobResult",
-		out, err, status
+		out, err, status, command
 	)
 	return(obj)
 }
@@ -159,5 +166,36 @@ setMethod("getStatus",
 		object
 	) {
 		return(object@status)
+	}
+)
+#-------------------------------------------------------------------------------
+if (!isGeneric("getCommand")) {
+	setGeneric(
+		"getCommand",
+		function(object) standardGeneric("getCommand"),
+		signature=c("object")
+	)
+}
+#' getCommand-methods
+#'
+#' Return the command used to run the job.
+#'
+#' @param object \code{\linkS4class{JobResult}} object
+#' @return Command used to run the job as character
+#'
+#' @rdname getCommand-JobResult-method
+#' @docType methods
+#' @aliases getCommand
+#' @aliases getCommand,JobResult-method
+#' @author Fabian Mueller
+#' @export
+setMethod("getCommand",
+	signature(
+		object="JobResult"
+	),
+	function(
+		object
+	) {
+		return(object@command)
 	}
 )

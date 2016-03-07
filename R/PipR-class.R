@@ -699,14 +699,16 @@ setMethod("resetStep",
 #' The method will run all incomplete analysis steps given a \code{\linkS4class{CommandR}}
 #' object for executing the jobs pertaining to each step
 #'
-#' @param object     \code{\linkS4class{PipR}} object
-#' @param cmdr       \code{\linkS4class{CommandR}} object that will execute all jobs
-#'                   pertaining to each pipeline step.
-#' @param createDirs Logical Indicating whether subdirectories for each pipeline step should
-#'                   be created.
-#' @param saveStatus Logical indicating whether the \code{\linkS4class{PipR}} object should
-#'                   save itself and the current pipeline graph with annotated steps
-#'                   in the pipeline's status directory.
+#' @param object      \code{\linkS4class{PipR}} object
+#' @param cmdr        \code{\linkS4class{CommandR}} object that will execute all jobs
+#'                    pertaining to each pipeline step.
+#' @param createDirs  Logical Indicating whether subdirectories for each pipeline step should
+#'                    be created.
+#' @param saveStatus  Logical indicating whether the \code{\linkS4class{PipR}} object should
+#'                    save itself and the current pipeline graph with annotated steps
+#'                    in the pipeline's status directory.
+#' @param logCommands Logical indicating whether the commands that have been used should be
+#'                    written to a log file.
 #' @return the modified pipeline object with updated step states.
 #' @rdname run-PipR-method
 #' @docType methods
@@ -723,6 +725,7 @@ setMethod("run",
 		cmdr=CommandRsystem(logDir=getDir(object, "log")),
 		createDirs=TRUE,
 		saveStatus=TRUE,
+		logCommands=FALSE,
 		...
 	) {
 		if (!inherits(cmdr, "CommandR")){
@@ -734,6 +737,7 @@ setMethod("run",
 		}
 		stepsOrdered <- getSteps(object, graphOrder=TRUE)
 
+		logDir <- getDir(object, "log")
 		stepRes <- list()
 		for (step in stepsOrdered){
 			stepDetails <- object@steps[[step]]
@@ -771,6 +775,13 @@ setMethod("run",
 				object@steps[[step]][["jobResults"]] <- rr
 				object@steps[[step]][["status"]] <- "complete"
 
+				if (logCommands){
+					cmds <- unlist(lapply(rr, FUN=function(x){getCommand(x)}))
+					if (length(cmds) > 0){
+						fn <- file.path(logDir, paste0(step, "_jobCommands.log"))
+						writeLines(cmds, fn)
+					}
+				}
 				if (saveStatus){
 					fn <- file.path(getDir(object, "status"), "pipr.rds")
 					saveRDS(object, fn)

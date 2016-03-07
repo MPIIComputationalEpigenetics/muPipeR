@@ -106,7 +106,7 @@ setMethod("exec",
 			sysErr <- readLines(errFile)
 		}
 
-		res <- JobResult(out=sysOut, err=sysErr, status=sysStatus)
+		res <- JobResult(out=sysOut, err=sysErr, status=sysStatus, command=getCallString(job))
 		return(res)
 	}
 )

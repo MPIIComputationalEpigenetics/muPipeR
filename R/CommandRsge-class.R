@@ -206,7 +206,9 @@ doQsub <- function(job, logFile, errFile, jobName=getId(job), req=NULL, shellScr
 		runCmd
 	)
 	subRes <- system2(qsubCmd, args)
-	return(subRes)
+	cmd <- paste(qsubCmd, paste(args, collapse=" "), sep=" ")
+	res <- list(result=subRes, command=cmd)
+	return(res)
 }
 ################################################################################
 # Execution of jobs
@@ -267,7 +269,7 @@ setMethod("exec",
 			sysErr <- readLines(errFile)
 		}
 
-		res <- JobResult(out=sysOut, err=sysErr, status=sysStatus)
+		res <- JobResult(out=sysOut, err=sysErr, status=sysStatus, command=subRes$command)
 		return(res)
 	}
 )
@@ -338,7 +340,7 @@ setMethod("lexec",
 				sysOut <- readLines(x[["logFile"]])
 				sysErr <- readLines(x[["errFile"]])
 			}
-			rr <- JobResult(out=sysOut, err=sysErr, status=sysStatus)
+			rr <- JobResult(out=sysOut, err=sysErr, status=sysStatus, command=x[["subRes"]][["command"]])
 			return(rr)
 		})
 		return(res)
