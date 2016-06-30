@@ -16,3 +16,14 @@ getHashString <- function(pattern="", useDate=TRUE){
 	res <- basename(tempfile(pattern=pat))
 	return(res)
 }
+
+#' checkErrorsInLogFiles
+#' 
+#' Check and report lines containing error keywords in text files
+#' @param logFns   (vector of) log/text file names
+#' @return ...
+#' @author Fabian Mueller
+#' @export
+checkErrorsInLogFiles <- function(logFns, errorKeys=c("error", "fail", "except")){
+	return("")
+}

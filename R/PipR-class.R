@@ -642,6 +642,8 @@ if (!isGeneric("resetStep")) {
 #' @param object  \code{\linkS4class{PipR}} object
 #' @param name    Name for the analysis step to be reset/undone.
 #' @param delete  Logical Indicating whether the step's result directory should be deleted
+#' @param archiveLogs  Logical Indicating whether the step's log files should be put in an archive folder
+#' 	              (carrying the timestamp of the execution of the reset step in its name)
 #' @param resetDependendSteps Logical indicating whether subsequent steps that depend on the
 #'                reset step should also be reset.
 #' @return the modified pipeline object with the reset anlysis step(s)
@@ -659,6 +661,7 @@ setMethod("resetStep",
 		object,
 		name,
 		delete=TRUE,
+		archiveLogs=TRUE,
 		resetDependendSteps=TRUE
 	) {
 		if (!is.element(name, getSteps(object))){
@@ -670,12 +673,30 @@ setMethod("resetStep",
 		if (delete && dir.exists(stepDetails[["dir"]])){
 			unlink(stepDetails[["dir"]], recursive=TRUE)
 		}
+		# archive log files
+		if (archiveLogs){
+			logDir <- getDir(object, "log")
+			stepJobs <- stepDetails[["jobs"]]
+			files2move <- c()
+			for (jj in stepJobs){
+				jid <- getId(jj)
+				jobFiles <- list.files(logDir, pattern=jid)
+				if (length(jobFiles) > 0 && jobFiles != ""){
+					files2move <- c(files2move, jobFiles)
+				}
+			}
+			if (length(files2move) > 0){
+				archDir <- file.path(logDir, format(Sys.time(), "archive_%Y%m%d_%H%M%S"))
+				if (!dir.exists(archDir)) dir.create(archDir) #the directory could already exists, if the step is reset as a consequence of a recursive call
+				file.rename(file.path(logDir, files2move), file.path(archDir, files2move))
+			}
+		}
 		# reset dependend steps
 		if (resetDependendSteps){
 			depSteps <- subcomponent(object@graph, name, mode="out")$name
 			depSteps <- setdiff(depSteps, name)
 			for (ss in depSteps){
-				object <- resetStep(object, ss, delete=delete, resetDependendSteps=FALSE)
+				object <- resetStep(object, ss, delete=delete, archiveLogs=archiveLogs, resetDependendSteps=FALSE)
 			}
 		}
 		return(object)
