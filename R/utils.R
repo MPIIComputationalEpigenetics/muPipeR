@@ -17,13 +17,13 @@ getHashString <- function(pattern="", useDate=TRUE){
 	return(res)
 }
 
-#' checkErrorsInLogFiles
-#' 
-#' Check and report lines containing error keywords in text files
-#' @param logFns   (vector of) log/text file names
-#' @return ...
-#' @author Fabian Mueller
-#' @export
-checkErrorsInLogFiles <- function(logFns, errorKeys=c("error", "fail", "except")){
-	return("")
-}
+# #' checkErrorsInLogFiles
+# #' 
+# #' Check and report lines containing error keywords in text files
+# #' @param logFns   (vector of) log/text file names
+# #' @return ...
+# #' @author Fabian Mueller
+# #' @export
+# checkErrorsInLogFiles <- function(logFns, errorKeys=c("error", "fail", "except")){
+# 	return("")
+# }

@@ -527,7 +527,8 @@ if (!isGeneric("addStep")) {
 #' Add an analysis step to the pipeline
 #' @details
 #' The new analysis step will be registered and scheduled for running using
-#' the \code{\link{run,PipR-method}} command.
+#' the \code{\link{run,PipR-method}} command. If the pipeline already contains
+#' a step with that name, it will be overwritten (a warning will be given).
 #'
 #' @param object  \code{\linkS4class{PipR}} object
 #' @param name    A name for the analysis step. will be used as an identifier
