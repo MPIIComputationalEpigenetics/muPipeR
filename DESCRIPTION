@@ -4,9 +4,9 @@ Description: Analysis pipelines in R
 Authors@R: c(
     person("Fabian", "Mueller", email = "fmueller@mpi-inf.mpg.de",
     role = c("aut", "cre")))
-Date: 2016-06-30
+Date: 2018-01-24
 License: GPL-3
-Version: 0.2
+Version: 0.3
 Depends:
     RnBeads
 Imports:
