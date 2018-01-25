@@ -176,17 +176,17 @@ doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchS
 			runCmd
 		)
 		fileConn <- file(scrptFn)
-		writeLines(, fileConn)
+		writeLines(scrptLines, fileConn)
 		close(fileConn)
 		Sys.chmod(scrptFn, mode = "0755")
 		runCmd <- scrptFn
 	}
-	qsubCmd <- "sbatch"
+	subCmd <- "sbatch"
 	args <- c(
 		scrptFn
 	)
-	subRes <- system2(qsubCmd, args)
-	cmd <- paste(qsubCmd, paste(args, collapse=" "), sep=" ")
+	subRes <- system2(subCmd, args)
+	cmd <- paste(subCmd, paste(args, collapse=" "), sep=" ")
 	res <- list(result=subRes, command=cmd)
 	return(res)
 }
