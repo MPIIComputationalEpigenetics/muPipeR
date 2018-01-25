@@ -2,8 +2,8 @@
 % Please edit documentation in R/Job-class.R
 \docType{methods}
 \name{getArgs,Job-method}
-\alias{getArgs}
 \alias{getArgs,Job-method}
+\alias{getArgs}
 \title{getArgs-methods}
 \usage{
 \S4method{getArgs}{Job}(object)
@@ -20,4 +20,3 @@ Return the additional arguments for the command call of the object
 \author{
 Fabian Mueller
 }
-

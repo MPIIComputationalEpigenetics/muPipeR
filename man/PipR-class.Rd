@@ -2,8 +2,8 @@
 % Please edit documentation in R/PipR-class.R
 \docType{class}
 \name{PipR-class}
-\alias{PipR}
 \alias{PipR-class}
+\alias{PipR}
 \alias{intialize,PipR-method}
 \title{PipR}
 \usage{
@@ -95,7 +95,7 @@ See the package vignette for examples and more details.
    }
 }
 }
+
 \author{
 Fabian Mueller
 }
-

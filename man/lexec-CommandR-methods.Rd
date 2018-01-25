@@ -2,8 +2,8 @@
 % Please edit documentation in R/CommandR-class.R
 \docType{methods}
 \name{lexec,CommandR-method}
-\alias{lexec}
 \alias{lexec,CommandR-method}
+\alias{lexec}
 \title{lexec-methods}
 \usage{
 \S4method{lexec}{CommandR}(object, jobList, result = FALSE, wait = TRUE)
@@ -30,4 +30,3 @@ For a concrete child class implementation for a sun grid architecture specificat
 \author{
 Fabian Mueller
 }
-

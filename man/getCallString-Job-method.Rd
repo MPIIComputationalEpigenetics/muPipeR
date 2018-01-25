@@ -2,8 +2,8 @@
 % Please edit documentation in R/Job-class.R
 \docType{methods}
 \name{getCallString,Job-method}
-\alias{getCallString}
 \alias{getCallString,Job-method}
+\alias{getCallString}
 \title{getCallString-methods}
 \usage{
 \S4method{getCallString}{Job}(object)
@@ -20,4 +20,3 @@ Concatenate the command and arguments into a single string for system calls.
 \author{
 Fabian Mueller
 }
-

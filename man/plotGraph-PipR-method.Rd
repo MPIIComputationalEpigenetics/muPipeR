@@ -2,8 +2,8 @@
 % Please edit documentation in R/PipR-class.R
 \docType{methods}
 \name{plotGraph,PipR-method}
-\alias{plotGraph}
 \alias{plotGraph,PipR-method}
+\alias{plotGraph}
 \title{plotGraph-methods}
 \usage{
 \S4method{plotGraph}{PipR}(object, activeSteps = character())
@@ -22,10 +22,9 @@ Plot the pipeline graph representation.
 \details{
 Registered steps will appear in yellow, completed steps in green and active steps in orange.
 }
-\author{
-Fabian Mueller
-}
 \seealso{
 \code{\link{getGraph,PipR-method}} for getting the graph as \code{igraph} object.
 }
-
+\author{
+Fabian Mueller
+}

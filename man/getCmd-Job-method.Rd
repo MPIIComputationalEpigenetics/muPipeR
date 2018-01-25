@@ -2,8 +2,8 @@
 % Please edit documentation in R/Job-class.R
 \docType{methods}
 \name{getCmd,Job-method}
-\alias{getCmd}
 \alias{getCmd,Job-method}
+\alias{getCmd}
 \title{getCmd-methods}
 \usage{
 \S4method{getCmd}{Job}(object)
@@ -20,4 +20,3 @@ Return the command/tool of the object
 \author{
 Fabian Mueller
 }
-

@@ -2,8 +2,8 @@
 % Please edit documentation in R/PipR-class.R
 \docType{methods}
 \name{addStep,PipR-method}
-\alias{addStep}
 \alias{addStep,PipR-method}
+\alias{addStep}
 \title{addStep-methods}
 \usage{
 \S4method{addStep}{PipR}(object, name, cmd, args = NULL,
@@ -37,4 +37,3 @@ the \code{\link{run,PipR-method}} command.
 \author{
 Fabian Mueller
 }
-

@@ -30,4 +30,3 @@ Instantiates the method \code{\link{exec,CommandR-method}} for \code{\linkS4clas
 \author{
 Fabian Mueller
 }
-

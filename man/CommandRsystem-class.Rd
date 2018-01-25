@@ -2,8 +2,8 @@
 % Please edit documentation in R/CommandRsystem-class.R
 \docType{class}
 \name{CommandRsystem-class}
-\alias{CommandRsystem}
 \alias{CommandRsystem-class}
+\alias{CommandRsystem}
 \alias{intialize,CommandRsystem-method}
 \title{CommandRsystem Class}
 \usage{
@@ -27,7 +27,7 @@ Includes all the slots of the \code{\linkS4class{CommandR}} class
 
 implements all the methods of the \code{\linkS4class{CommandR}} class.
 }
+
 \author{
 Fabian Mueller
 }
-

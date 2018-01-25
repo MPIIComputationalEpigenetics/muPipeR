@@ -2,11 +2,11 @@
 % Please edit documentation in R/PipR-class.R
 \docType{methods}
 \name{resetStep,PipR-method}
-\alias{resetStep}
 \alias{resetStep,PipR-method}
+\alias{resetStep}
 \title{resetStep-methods}
 \usage{
-\S4method{resetStep}{PipR}(object, name, delete = TRUE,
+\S4method{resetStep}{PipR}(object, name, delete = TRUE, archiveLogs = TRUE,
   resetDependendSteps = TRUE)
 }
 \arguments{
@@ -15,6 +15,9 @@
 \item{name}{Name for the analysis step to be reset/undone.}
 
 \item{delete}{Logical Indicating whether the step's result directory should be deleted}
+
+\item{archiveLogs}{Logical Indicating whether the step's log files should be put in an archive folder
+(carrying the timestamp of the execution of the reset step in its name)}
 
 \item{resetDependendSteps}{Logical indicating whether subsequent steps that depend on the
 reset step should also be reset.}
@@ -32,4 +35,3 @@ The analysis step and potentially all it's dependent steps will be marked as
 \author{
 Fabian Mueller
 }
-

@@ -16,4 +16,3 @@ Initialize a CommandR object
 \author{
 Fabian Mueller
 }
-

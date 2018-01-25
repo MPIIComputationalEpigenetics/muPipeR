@@ -23,4 +23,3 @@ getHashString()
 \author{
 Fabian Mueller
 }
-

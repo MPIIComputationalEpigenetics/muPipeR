@@ -2,8 +2,8 @@
 % Please edit documentation in R/CommandR-class.R
 \docType{methods}
 \name{exec,CommandR-method}
-\alias{exec}
 \alias{exec,CommandR-method}
+\alias{exec}
 \title{exec-methods}
 \usage{
 \S4method{exec}{CommandR}(object, job, result = FALSE, wait = TRUE)
@@ -30,4 +30,3 @@ For a concrete child class implementations see \code{\link{exec,CommandRsystem-m
 \author{
 Fabian Mueller
 }
-

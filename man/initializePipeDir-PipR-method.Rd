@@ -2,8 +2,8 @@
 % Please edit documentation in R/PipR-class.R
 \docType{methods}
 \name{initializePipeDir,PipR-method}
-\alias{initializePipeDir}
 \alias{initializePipeDir,PipR-method}
+\alias{initializePipeDir}
 \title{initializePipeDir-methods}
 \usage{
 \S4method{initializePipeDir}{PipR}(object)
@@ -23,4 +23,3 @@ Will result in an error if the pipeline directory is already existing.
 \author{
 Fabian Mueller
 }
-

@@ -2,8 +2,8 @@
 % Please edit documentation in R/Job-class.R
 \docType{methods}
 \name{getId,Job-method}
-\alias{getId}
 \alias{getId,Job-method}
+\alias{getId}
 \title{getId-methods}
 \usage{
 \S4method{getId}{Job}(object)
@@ -20,4 +20,3 @@ Return the id/name of the object
 \author{
 Fabian Mueller
 }
-

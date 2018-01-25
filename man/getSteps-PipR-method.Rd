@@ -2,8 +2,8 @@
 % Please edit documentation in R/PipR-class.R
 \docType{methods}
 \name{getSteps,PipR-method}
-\alias{getSteps}
 \alias{getSteps,PipR-method}
+\alias{getSteps}
 \title{getSteps-methods}
 \usage{
 \S4method{getSteps}{PipR}(object, status = "all", graphOrder = FALSE)
@@ -26,4 +26,3 @@ Return the names of pipeline steps
 \author{
 Fabian Mueller
 }
-

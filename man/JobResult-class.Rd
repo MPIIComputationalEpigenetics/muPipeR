@@ -2,12 +2,13 @@
 % Please edit documentation in R/JobResult-class.R
 \docType{class}
 \name{JobResult-class}
-\alias{JobResult}
 \alias{JobResult-class}
+\alias{JobResult}
 \alias{intialize,JobResult-method}
 \title{JobResult}
 \usage{
-JobResult(out = character(), err = character(), status = 0L)
+JobResult(out = character(), err = character(), status = 0L,
+  command = character())
 }
 \arguments{
 \item{out}{Character vector storing the output of the job.
@@ -17,6 +18,8 @@ character string containing no white spaces.}
 command or tool}
 
 \item{status}{Integer specifying the job's status. \code{0} for success.}
+
+\item{command}{The command used to run the job as character.}
 }
 \description{
 A class for storing information on the results of pipeline jobs.
@@ -33,6 +36,9 @@ A class for storing information on the results of pipeline jobs.
   \item{\code{status}}{
 	Integer specifying the job's status. \code{0} for success.
   }
+  \item{\code{command}}{
+	Character storing the command used to run the job.
+  }
 }
 }
 
@@ -48,7 +54,7 @@ A class for storing information on the results of pipeline jobs.
    }
 }
 }
+
 \author{
 Fabian Mueller
 }
-

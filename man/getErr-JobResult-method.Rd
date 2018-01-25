@@ -2,8 +2,8 @@
 % Please edit documentation in R/JobResult-class.R
 \docType{methods}
 \name{getErr,JobResult-method}
-\alias{getErr}
 \alias{getErr,JobResult-method}
+\alias{getErr}
 \title{getErr-methods}
 \usage{
 \S4method{getErr}{JobResult}(object)
@@ -20,4 +20,3 @@ Return the errors of the job.
 \author{
 Fabian Mueller
 }
-

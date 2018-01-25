@@ -2,12 +2,12 @@
 % Please edit documentation in R/PipR-class.R
 \docType{methods}
 \name{run,PipR-method}
-\alias{run}
 \alias{run,PipR-method}
+\alias{run}
 \title{run-methods}
 \usage{
 \S4method{run}{PipR}(object, cmdr = CommandRsystem(logDir = getDir(object,
-  "log")), createDirs = TRUE, saveStatus = TRUE, ...)
+  "log")), createDirs = TRUE, saveStatus = TRUE, logCommands = FALSE, ...)
 }
 \arguments{
 \item{object}{\code{\linkS4class{PipR}} object}
@@ -21,6 +21,9 @@ be created.}
 \item{saveStatus}{Logical indicating whether the \code{\linkS4class{PipR}} object should
 save itself and the current pipeline graph with annotated steps
 in the pipeline's status directory.}
+
+\item{logCommands}{Logical indicating whether the commands that have been used should be
+written to a log file.}
 }
 \value{
 the modified pipeline object with updated step states.
@@ -35,4 +38,3 @@ object for executing the jobs pertaining to each step
 \author{
 Fabian Mueller
 }
-

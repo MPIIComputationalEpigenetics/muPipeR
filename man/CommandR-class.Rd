@@ -32,7 +32,7 @@ If you want to implement your own child class be sure to at least implement the 
   \item{\code{\link{lexec,CommandR-method}}}{Execute an array of commands/jobs.}
 }
 }
+
 \author{
 Fabian Mueller
 }
-

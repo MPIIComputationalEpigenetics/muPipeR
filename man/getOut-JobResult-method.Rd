@@ -2,8 +2,8 @@
 % Please edit documentation in R/JobResult-class.R
 \docType{methods}
 \name{getOut,JobResult-method}
-\alias{getOut}
 \alias{getOut,JobResult-method}
+\alias{getOut}
 \title{getOut-methods}
 \usage{
 \S4method{getOut}{JobResult}(object)
@@ -20,4 +20,3 @@ Return the output of the job.
 \author{
 Fabian Mueller
 }
-

@@ -2,8 +2,8 @@
 % Please edit documentation in R/PipR-class.R
 \docType{methods}
 \name{getGraph,PipR-method}
-\alias{getGraph}
 \alias{getGraph,PipR-method}
+\alias{getGraph}
 \title{getGraph-methods}
 \usage{
 \S4method{getGraph}{PipR}(object)
@@ -18,10 +18,9 @@ An \code{igraph} object containing the graph
 Get a graph representation storing all steps in the pipeline as nodes
 and step dependencies as edges.
 }
-\author{
-Fabian Mueller
-}
 \seealso{
 \code{\link{plotGraph,PipR-method}} for plotting the graph
 }
-
+\author{
+Fabian Mueller
+}

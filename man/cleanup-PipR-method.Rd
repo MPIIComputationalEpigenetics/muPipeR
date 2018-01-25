@@ -2,8 +2,8 @@
 % Please edit documentation in R/PipR-class.R
 \docType{methods}
 \name{cleanup,PipR-method}
-\alias{cleanup}
 \alias{cleanup,PipR-method}
+\alias{cleanup}
 \title{cleanup-methods}
 \usage{
 \S4method{cleanup}{PipR}(object)
@@ -24,4 +24,3 @@ from the log directoy will be deleted.
 \author{
 Fabian Mueller
 }
-

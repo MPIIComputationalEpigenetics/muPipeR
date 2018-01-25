@@ -2,8 +2,8 @@
 % Please edit documentation in R/PipR-class.R
 \docType{methods}
 \name{getDir,PipR-method}
-\alias{getDir}
 \alias{getDir,PipR-method}
+\alias{getDir}
 \title{getDir-methods}
 \usage{
 \S4method{getDir}{PipR}(object, type = "base")
@@ -23,4 +23,3 @@ Return the pipeline base directory or one of it's subdirectories
 \author{
 Fabian Mueller
 }
-

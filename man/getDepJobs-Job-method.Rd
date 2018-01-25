@@ -2,8 +2,8 @@
 % Please edit documentation in R/Job-class.R
 \docType{methods}
 \name{getDepJobs,Job-method}
-\alias{getDepJobs}
 \alias{getDepJobs,Job-method}
+\alias{getDepJobs}
 \title{getDepJobs-methods}
 \usage{
 \S4method{getDepJobs}{Job}(object)
@@ -20,4 +20,3 @@ Return other jobs the current job depends on
 \author{
 Fabian Mueller
 }
-

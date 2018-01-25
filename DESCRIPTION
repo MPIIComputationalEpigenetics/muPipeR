@@ -22,5 +22,6 @@ Collate:
     'CommandR-class.R'
     'CommandRsystem-class.R'
     'CommandRsge-class.R'
+    'CommandRslurm-class.R'
     'PipR-class.R'
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1

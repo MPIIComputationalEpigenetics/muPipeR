@@ -2,8 +2,8 @@
 % Please edit documentation in R/PipR-class.R
 \docType{methods}
 \name{changePipeDir,PipR-method}
-\alias{changePipeDir}
 \alias{changePipeDir,PipR-method}
+\alias{changePipeDir}
 \title{changePipeDir-methods}
 \usage{
 \S4method{changePipeDir}{PipR}(object, dir)
@@ -25,4 +25,3 @@ Will result in an error if the new pipeline directory is already existing.
 \author{
 Fabian Mueller
 }
-

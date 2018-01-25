@@ -30,4 +30,3 @@ Instantiates the method \code{\link{lexec,CommandR-method}} for \code{\linkS4cla
 \author{
 Fabian Mueller
 }
-

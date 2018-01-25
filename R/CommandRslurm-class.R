@@ -145,7 +145,7 @@ doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchS
 		if (any(is.na(names(req))) || is.null(names(req))){
 			logger.error("Invalid resource requirement specification. Need names for all requirements")
 		}
-		reqStrs <- paste0(names(req),"=",req))
+		reqStrs <- paste0(names(req),"=",req)
 	}
 
 	depJobIds <- do.call("c", lapply(getDepJobs(job), getId))
@@ -180,7 +180,6 @@ doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchS
 		close(fileConn)
 		Sys.chmod(scrptFn, mode = "0755")
 		runCmd <- scrptFn
-	}
 	}
 	qsubCmd <- "sbatch"
 	args <- c(

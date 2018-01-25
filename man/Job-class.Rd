@@ -2,8 +2,8 @@
 % Please edit documentation in R/Job-class.R
 \docType{class}
 \name{Job-class}
-\alias{Job}
 \alias{Job-class}
+\alias{Job}
 \alias{intialize,Job-method}
 \title{Job}
 \usage{
@@ -58,7 +58,7 @@ A class for storing information on pipeline jobs.
    }
 }
 }
+
 \author{
 Fabian Mueller
 }
-

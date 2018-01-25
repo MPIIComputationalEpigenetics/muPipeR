@@ -2,8 +2,8 @@
 % Please edit documentation in R/CommandR-class.R
 \docType{methods}
 \name{getLogDir,CommandR-method}
-\alias{getLogDir}
 \alias{getLogDir,CommandR-method}
+\alias{getLogDir}
 \title{getLogDir-methods}
 \usage{
 \S4method{getLogDir}{CommandR}(object)
@@ -20,4 +20,3 @@ Return the logging directory of an object
 \author{
 Fabian Mueller
 }
-
