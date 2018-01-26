@@ -7,10 +7,10 @@
 \alias{intialize,CommandRslurm-method}
 \title{CommandRslurm Class}
 \usage{
-CommandRslurm(logDir = NULL, req = NULL)
+CommandRslurm(scriptDir = NULL, req = NULL)
 }
 \arguments{
-\item{logDir}{logging directory}
+\item{scriptDir}{script directory}
 
 \item{req}{default resource requirements. Will be specified for each submitted job, if no
 other requirements are specified. Must be a named character vector.}

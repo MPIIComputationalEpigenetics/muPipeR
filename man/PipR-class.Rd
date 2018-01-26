@@ -32,6 +32,9 @@ See the package vignette for examples and more details.
   \item{\code{logDir}}{
 	Directory containing log files orginating from executing the analysis pipeline
   }
+  \item{\code{srcDir}}{
+	Directory containing source files for executing the analysis pipeline
+  }
   \item{\code{resultDir}}{
 	Directory containing results orginating from executing the analysis pipeline.
      This directory will contain subdirectories for each analysis step

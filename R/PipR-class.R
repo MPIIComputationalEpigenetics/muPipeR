@@ -18,6 +18,9 @@
 #'   \item{\code{logDir}}{
 #'		Directory containing log files orginating from executing the analysis pipeline
 #'   }
+#'   \item{\code{srcDir}}{
+#'		Directory containing source files for executing the analysis pipeline
+#'   }
 #'   \item{\code{resultDir}}{
 #'		Directory containing results orginating from executing the analysis pipeline.
 #'      This directory will contain subdirectories for each analysis step
@@ -87,6 +90,7 @@ setClass("PipR",
 	slots = list(
 		baseDir   = "character",
 		logDir    = "characterOrNULL",
+		srcDir    = "characterOrNULL",
 		statusDir = "characterOrNULL",
 		resultDir = "characterOrNULL",
 		tempDir   = "characterOrNULL",
@@ -105,6 +109,7 @@ setMethod("initialize","PipR",
 		require(igraph)
 		.Object@baseDir   <- baseDir
 		.Object@logDir    <- NULL
+		.Object@srcDir    <- NULL
 		.Object@statusDir <- NULL
 		.Object@resultDir <- NULL
 		.Object@tempDir   <- NULL
@@ -164,6 +169,8 @@ setMethod("getDir",
 			res <- object@baseDir
 		} else if (type == "log"){
 			res <- object@logDir
+		} else if (type == "src"){
+			res <- object@srcDir
 		} else if (type == "status"){
 			res <- object@statusDir
 		} else if (type == "result"){
@@ -364,6 +371,8 @@ setMethod("initializePipeDir",
 		dir.create(bd)
 		logDir <- file.path(bd, "log")
 		dir.create(logDir)
+		srcDir <- file.path(bd, "src")
+		dir.create(srcDir)
 		statusDir <- file.path(bd, "status")
 		dir.create(statusDir)
 		resultDir <- file.path(bd, "results")
@@ -372,6 +381,7 @@ setMethod("initializePipeDir",
 		dir.create(tempDir)
 
 		object@logDir    <- logDir
+		object@srcDir    <- srcDir
 		object@statusDir <- statusDir
 		object@resultDir <- resultDir
 		object@tempDir   <- tempDir
@@ -799,7 +809,7 @@ setMethod("run",
 				if (logCommands){
 					cmds <- unlist(lapply(rr, FUN=function(x){getCommand(x)}))
 					if (length(cmds) > 0){
-						fn <- file.path(logDir, paste0(step, "_jobCommands.log"))
+						fn <- file.path(getDir(object, "src"), paste0(step, "_jobCommands.log"))
 						writeLines(cmds, fn)
 					}
 				}

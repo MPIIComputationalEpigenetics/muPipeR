@@ -20,7 +20,8 @@
 #' @exportClass CommandRslurm
 setClass("CommandRslurm",
 	slots = list(
-		req   = "characterOrNULL"
+		req   = "characterOrNULL",
+		scriptDir   = "characterOrNULL"
 	),
 	contains="CommandR",
 	package = "muPipeR"
@@ -29,11 +30,16 @@ setMethod("initialize","CommandRslurm",
 	function(
 		.Object,
 		logDir=NULL,
+		scriptDir=NULL,
 		req=NULL
 	) {
 		if (is.null(logDir)){
 			logDir <- tempdir()
-			logger.warning(c("Did not specify directory for logging. --> using directory:", logDir))
+			logger.warning(c("Did not specify directory for logging --> using directory:", logDir))
+		}
+		if (is.null(scriptDir)){
+			scriptDir <- tempdir()
+			logger.warning(c("Did not specify directory for scripts. --> using directory:", scriptDir))
 		}
 		if (!is.null(req)){
 			if (any(is.na(names(req))) || is.null(names(req))){
@@ -42,12 +48,14 @@ setMethod("initialize","CommandRslurm",
 		}
 		.Object <- callNextMethod(.Object)
 		.Object@logDir <- logDir
+		.Object@scriptDir <- scriptDir
 		.Object@handlesJobDeps <- TRUE
 		.Object@req <- req
 		.Object
 	}
 )
-#' @param logDir logging directory
+#' @param logDir log directory
+#' @param scriptDir script directory
 #' @param req default resource requirements. Will be specified for each submitted job, if no
 #'            other requirements are specified. Must be a named character vector.
 #' 
@@ -55,15 +63,32 @@ setMethod("initialize","CommandRslurm",
 #' @rdname CommandRslurm-class
 #' @aliases intialize,CommandRslurm-method
 #' @export
-CommandRslurm <- function(logDir=NULL, req=NULL){
+CommandRslurm <- function(logDir=NULL, scriptDir=NULL, req=NULL){
 	obj <- new("CommandRslurm",
-		logDir, req
+		logDir, scriptDir, req
 	)
 	return(obj)
 }
 ################################################################################
 # Helpers
 ################################################################################
+#' getSlurmJobStatusTab
+#' 
+#' Query the slurm engine using retrieve a table containing job states for the given
+#' job ids
+#' @param jids   job id(s)
+#' @return a table containing job names, slurm IDs, and states
+#' @author Fabian Mueller
+#' @noRd
+getSlurmJobStatusTab <- function(jids){
+	tmpFn <- tempfile(pattern="squeue", fileext=".tsv")
+	stateStr <- system2("squeue", c("-o", paste0('"', paste(c("%j", "%i", "%T"), collapse="\t"), '"')), stdout=tmpFn)
+	stateTab <- read.table(tmpFn, header=TRUE, sep="\t", stringsAsFactors=FALSE)
+	unlink(tmpFn)
+
+	stateTab <- stateTab[stateTab[,"NAME"] %in% jids,]
+	return(stateTab)
+}
 #' getSlurmJobStatus
 #' 
 #' Query the slurm engine using retrieve the status (known or unknown) 
@@ -74,10 +99,7 @@ CommandRslurm <- function(logDir=NULL, req=NULL){
 #' @author Fabian Mueller
 #' @noRd
 getSlurmJobStatus <- function(jids){
-	tmpFn <- tempfile(pattern="squeue", fileext=".tsv")
-	stateStr <- system2("squeue", c("-o", paste0('"', paste(c("%j", "%i", "%T"), collapse="\t"), '"')), stdout=tmpFn)
-	stateTab <- read.table(tmpFn, header=TRUE, sep="\t", stringsAsFactors=FALSE)
-	unlink(tmpFn)
+	stateTab <- getSlurmJobStatusTab(jids)
 
 	stateTab <- stateTab[stateTab[,"STATE"] %in% c("PENDING", "RUNNING", "COMPLETING", "CONFIGURING", "SUSPENDED"),]
 	res <- ifelse(jids %in% stateTab[,"NAME"], "active", "inactive")
@@ -116,7 +138,7 @@ waitForSlurmJobsToTerminate <- function(jids){
 	jids.incomplete <- jids
 	while (length(jids.incomplete) > 0){
 		Sys.sleep(lag)
-		jobStatus <- sapply(jids.incomplete, getSgeJobStatus)
+		jobStatus <- sapply(jids.incomplete, getSlurmJobStatus)
 		jids.done <- jids.incomplete[jobStatus %in% c("inactive")]
 		jids.incomplete <- setdiff(jids.incomplete, jids.done)
 	}
@@ -151,12 +173,17 @@ doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchS
 	depJobIds <- do.call("c", lapply(getDepJobs(job), getId))
 	depStr <- NULL
 	if (length(depJobIds)>0){
-		depStr <- paste("--dependency", paste0("afterany:", paste(depJobIds, collapse=":")), collapse="=")
+		jTab <- getSlurmJobStatusTab(depJobIds)
+		slurmIdStr <- paste(unique(jTab[,"JOBID"]), collapse=":")
+		depStr <- paste(c("--dependency", paste0("afterany:", slurmIdStr)), collapse="=")
 	}
 	nameStr <- NULL
-	if (!is.null(jobName)) nameStr <- paste("--job-name", jobName, collapse="=")
+	if (!is.null(jobName)) nameStr <- paste(c("--job-name", jobName), collapse="=")
 
-	reqLines <- c(nameStr, depStr, reqStrs)
+	outFnStr <- paste(c("--output", logFile), collapse="=")
+	errFnStr <- paste(c("--error", errFile), collapse="=")
+
+	reqLines <- c(nameStr, outFnStr, errFnStr, depStr, reqStrs)
 	reqLines <- paste("#SBATCH", reqLines)
 
 	runCmd <- paste("srun", getCallString(job))
@@ -172,7 +199,6 @@ doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchS
 		scrptLines <- c(
 			"#!/bin/bash",
 			reqLines,
-			"\n",
 			runCmd
 		)
 		fileConn <- file(scrptFn)
@@ -233,7 +259,7 @@ setMethod("exec",
 		logFile   <- logStruct$logFile
 		errFile   <- logStruct$errFile
 		jid       <- logStruct$jobId
-		scrptDir  <- logStruct$logDir
+		scrptDir  <- object@scriptDir
 
 		sysOut <- character()
 		sysErr <- character()
@@ -295,7 +321,7 @@ setMethod("lexec",
 			logFile   <- logStruct$logFile
 			errFile   <- logStruct$errFile
 			jid       <- logStruct$jobId
-			scrptDir  <- logStruct$logDir
+			scrptDir  <- object@scriptDir
 			subRes <- doSbatch(jj, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir)
 			rr <- list(
 				jobId=jid,
