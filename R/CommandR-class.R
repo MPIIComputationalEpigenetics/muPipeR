@@ -393,6 +393,7 @@ setMethod("lapplyExec",
 		})
 
 		if (cleanUp) {
+			logger.status("Cleaning up ...")
 			unlink(baseDir, recursive=TRUE)
 		}
 		return(res)
