@@ -43,6 +43,8 @@ It will create an R script for the commands
 ll <- lapply(1:20,  identity)
 cmdr <- CommandRsystem("partest")
 rr <- lapplyExec(cmdr, ll, function(i, b){Sys.sleep(1); print(a); print(b); return(paste("success on job", i, "- status:", b))}, env=list(a="success"), cleanUp=FALSE, b="superduper")
+cmdrs <- CommandRslurm("partest", req=c("--mem"="4G", "--time"="00:00:10"))
+rr2 <- lapplyExec(cmdrs, ll, function(i, b){Sys.sleep(1); print(a); print(b); return(paste("success on job", i, "- status:", b))}, env=list(a="success"), Rexec="muRscript", cleanUp=FALSE, b="superduper")
 }
 }
 \author{
