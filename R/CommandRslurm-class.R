@@ -135,11 +135,8 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 		#TODO: maybe hold jobs until all have been submitted
 	}
 	if (initRelease){
-		relCmd <- "scontrol release"
-		args <- paste0('"', paste(paste0("jobname=", jids), collapse=","), '"')
-		if (hold){
-			args <- c("--hold", args)
-		}
+		relCmd <- "scontrol"
+		args <- c("release", paste0('"', paste(paste0("jobname=", jids), collapse=","), '"'))
 		subRes <- system2(relCmd, args)
 	}
 	logger.status("Waiting for jobs to complete...")
