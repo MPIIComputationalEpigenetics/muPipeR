@@ -345,7 +345,8 @@ setMethod("lapplyExec",
 		}
 
 		rdFn <- file.path(dataDir, "envir.RData")
-		if (is.character(env) && lenght(env) == 1 && file.exists(env)){
+		if (is.character(env) && length(env) == 1 && file.exists(env)){
+			logger.info(c("... using environment:", env))
 			rdFn <- env
 		} else {
 			save(list=ls(envir=env), file=rdFn, envir=env)
