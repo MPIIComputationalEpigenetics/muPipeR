@@ -17,7 +17,8 @@
 
 \item{FUN}{the R function to be run}
 
-\item{env}{R environment or list storing variables that will be exported and might be used in the function call}
+\item{env}{R environment or list storing variables that will be exported and might be used in the function call.
+Alternatively, it can be a filename of an existing file in which such an environment has been saved using \code{\link{save}}}
 
 \item{loadPackages}{character vector of packages to load before executing the function}
 

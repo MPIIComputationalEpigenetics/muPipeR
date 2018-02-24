@@ -262,7 +262,8 @@ if (!isGeneric("lapplyExec")) {
 #' @param object   \code{\linkS4class{CommandR}} object
 #' @param X		   the object to iterate over. Currently only \code{list} objects are supported
 #' @param FUN      the R function to be run
-#' @param env      R environment or list storing variables that will be exported and might be used in the function call
+#' @param env      R environment or list storing variables that will be exported and might be used in the function call.
+#'                 Alternatively, it can be a filename of an existing file in which such an environment has been saved using \code{\link{save}}
 #' @param loadPackages character vector of packages to load before executing the function
 #' @param Rexec    the command that is used to run the R script that is generated
 #' @param name     a name for the execution that will be used as identifier and prefix for the jobs that are run
@@ -344,8 +345,12 @@ setMethod("lapplyExec",
 		}
 
 		rdFn <- file.path(dataDir, "envir.RData")
-		save(list=ls(envir=env), file=rdFn, envir=env)
-
+		if (is.character(env) && lenght(env) == 1 && file.exists(env)){
+			rdFn <- env
+		} else {
+			save(list=ls(envir=env), file=rdFn, envir=env)
+		}
+		
 		scrptFn <- file.path(baseDir, "run.R")
 		loadPackages <- c(loadPackages, "argparse")
 		scrptLines <- c(
