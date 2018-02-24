@@ -322,7 +322,7 @@ setMethod("lapplyExec",
 		#set up subdirectories for clearer structure 
 		object@logDir <- file.path(baseDir, "log")
 		dir.create(object@logDir)
-		if (is.element("scriptDir", slotNames(object)){
+		if (is.element("scriptDir", slotNames(object))){
 			object@scriptDir <- file.path(baseDir, "src")
 			dir.create(object@scriptDir)
 		}
