@@ -112,10 +112,11 @@ getSlurmJobStatus <- function(jids){
 #' repeatedly queries the slurm engine to see whether the jobs are still "known".
 #' Initially checks whether it can find all jobs on the grid engine
 #' @param jids   character vector of job ids
+#' @param initRelease should held up jobs be released after the initial check?
 #' @return nothing of particular interest
 #' @author Fabian Mueller
 #' @noRd
-waitForSlurmJobsToTerminate <- function(jids){
+waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 	lag <- .config$waitLag
 	initialize.lag  <- 3
 	initialize.iter <- 20
@@ -131,6 +132,15 @@ waitForSlurmJobsToTerminate <- function(jids){
 	}
 	if (length(jids.invalid) > 0){
 		logger.error(c("Could not retrieve status for the following jobs (already finished?):", paste(jids.invalid, collapse=",")))
+		#TODO: maybe hold jobs until all have been submitted
+	}
+	if (initRelease){
+		relCmd <- "scontrol release"
+		args <- paste0('"', paste(paste0("jobname=", jids), collapse=","), '"')
+		if (hold){
+			args <- c("--hold", args)
+		}
+		subRes <- system2(relCmd, args)
 	}
 	logger.status("Waiting for jobs to complete...")
 	# wait for jobs to complete:
@@ -158,10 +168,11 @@ waitForSlurmJobsToTerminate <- function(jids){
 #' @param jobName a name for the submitted job
 #' @param req     resource requirements for the submitted job. Must be a named character vector.
 #' @param batchScriptDir directory where the batch script containing the command will be written to
+#' @param hold    should the job be submitted in a held state?
 #' @return the result of the system call using \link{system2}
 #' @author Fabian Mueller
 #' @noRd
-doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchScriptDir=NULL){
+doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchScriptDir=NULL, hold=FALSE){
 	reqStrs <- NULL
 	if (length(req) > 0) {
 		if (any(is.na(names(req))) || is.null(names(req))){
@@ -211,6 +222,9 @@ doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchS
 	args <- c(
 		scrptFn
 	)
+	if (hold){
+		args <- c("--hold", args)
+	}
 	subRes <- system2(subCmd, args)
 	cmd <- paste(subCmd, paste(args, collapse=" "), sep=" ")
 	res <- list(result=subRes, command=cmd)
@@ -265,10 +279,10 @@ setMethod("exec",
 		sysErr <- character()
 		sysStatus <- 0L
 
-		subRes <- doSbatch(job, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir)
+		subRes <- doSbatch(job, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir, hold=wait)
 
 		if (wait){
-			waitForSlurmJobsToTerminate(jid)
+			waitForSlurmJobsToTerminate(jid, initRelease=TRUE)
 		}
 		if (result){
 			sysOut <- readLines(logFile)
@@ -322,7 +336,7 @@ setMethod("lexec",
 			errFile   <- logStruct$errFile
 			jid       <- logStruct$jobId
 			scrptDir  <- object@scriptDir
-			subRes <- doSbatch(jj, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir)
+			subRes <- doSbatch(jj, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir, hold=wait)
 			rr <- list(
 				jobId=jid,
 				logFile=logFile,
@@ -334,7 +348,7 @@ setMethod("lexec",
 		
 		jids <- sapply(subJobList, FUN=function(x){x[["jobId"]]})
 		if (wait){
-			waitForSlurmJobsToTerminate(jids)
+			waitForSlurmJobsToTerminate(jids, initRelease=TRUE)
 		}
 
 		jr.default <- JobResult()
