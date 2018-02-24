@@ -319,8 +319,13 @@ setMethod("lapplyExec",
 		} else {
 			logger.error(c("directory", baseDir, "already exists"))
 		}
-		object@logDir <- file.path(baseDir, "log") #set the logging directory to a subdirectory
+		#set up subdirectories for clearer structure 
+		object@logDir <- file.path(baseDir, "log")
 		dir.create(object@logDir)
+		if (is.element("scriptDir", slotNames(object)){
+			object@scriptDir <- file.path(baseDir, "src")
+			dir.create(object@scriptDir)
+		}
 		dataDir <- file.path(baseDir, "data")
 		dir.create(dataDir)
 		outDir <- file.path(baseDir, "output")
@@ -396,4 +401,6 @@ setMethod("lapplyExec",
 # ll <- lapply(1:20,  identity)
 # cmdr <- CommandRsystem("partest")
 # rr <- lapplyExec(cmdr, ll, function(i, b){Sys.sleep(1); print(a); print(b); return(paste("success on job", i, "- status:", b))}, env=list(a="success"), cleanUp=FALSE, b="superduper")
+# cmdrs <- CommandRslurm("partest", scriptDir="partest", req=c("--mem"="4G", "--time"="00:00:10"))
+# rr <- lapplyExec(cmdrs, ll, function(i, b){Sys.sleep(1); print(a); print(b); return(paste("success on job", i, "- status:", b))}, env=list(a="success"), Rexec="muRscript", cleanUp=FALSE, b="superduper")
 
