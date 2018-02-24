@@ -279,6 +279,8 @@ if (!isGeneric("lapplyExec")) {
 #' ll <- lapply(1:20,  identity)
 #' cmdr <- CommandRsystem("partest")
 #' rr <- lapplyExec(cmdr, ll, function(i, b){Sys.sleep(1); print(a); print(b); return(paste("success on job", i, "- status:", b))}, env=list(a="success"), cleanUp=FALSE, b="superduper")
+#' cmdrs <- CommandRslurm("partest", req=c("--mem"="4G", "--time"="00:00:10"))
+#' rr2 <- lapplyExec(cmdrs, ll, function(i, b){Sys.sleep(1); print(a); print(b); return(paste("success on job", i, "- status:", b))}, env=list(a="success"), Rexec="muRscript", cleanUp=FALSE, b="superduper")
 #' }
 #' @rdname lapplyExec-CommandR-method
 #' @docType methods
@@ -305,7 +307,7 @@ setMethod("lapplyExec",
 			if (length(names(env)) != length(env)) logger.error("if env is a list, it must have names")
 			env <- list2env(env, parent=emptyenv())
 		}
-		logger.status("Preparing infrastructure...")
+		logger.status("Preparing infrastructure ...")
 		lDir <- getLogDir(object)
 		if (is.null(lDir)){
 			lDir <- tempdir()
@@ -314,10 +316,10 @@ setMethod("lapplyExec",
 		eid <- getHashString(name, useDate=TRUE)
 		baseDir <- file.path(lDir, eid)
 		if (!dir.exists(baseDir)){
-			logger.info(c("running R command using files in directory:", baseDir))
+			logger.info(c("... using directory:", baseDir))
 			dir.create(baseDir)
 		} else {
-			logger.error(c("directory", baseDir, "already exists"))
+			logger.error(c("Directory", baseDir, "already exists"))
 		}
 		#set up subdirectories for clearer structure 
 		object@logDir <- file.path(baseDir, "log")
@@ -331,7 +333,7 @@ setMethod("lapplyExec",
 		outDir <- file.path(baseDir, "output")
 		dir.create(outDir)
 
-		# Work in progress
+		logger.status("Saving input data ...")
 		fFn <- file.path(dataDir, "fun.rds")
 		saveRDS(FUN, fFn)
 		dFn <- file.path(dataDir, "dotArgs.rds")
@@ -382,10 +384,10 @@ setMethod("lapplyExec",
 			jobList <- c(jobList, list(jj))
 		}
 
-		logger.status("Running command...")
+		logger.status("Executing function on elements ...")
 		execRes <- lexec(object, jobList)
 
-		logger.status("Collecting output...")
+		logger.status("Collecting output ...")
 		res <- lapply(seq_along(X), FUN=function(i){
 			readRDS(file.path(outDir, paste0("o", i, ".rds")))
 		})
