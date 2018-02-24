@@ -244,3 +244,156 @@ setMethod("lexec",
 		return(res)
 	}
 )
+#-------------------------------------------------------------------------------
+# TODO: rethink this:
+# instead of executing just one set of R commands do something like lapply for
+# R scripts
+if (!isGeneric("lapplyExec")) {
+	setGeneric(
+		"lapplyExec",
+		function(object, X, ...) standardGeneric("lapplyExec"),
+		signature=c("object")
+	)
+}
+#' lapplyExec-methods
+#'
+#' lapply for \code{\linkS4class{CommandR}} objects using \code{\link{lexec,CommandR-method}}
+#'
+#' @param object   \code{\linkS4class{CommandR}} object
+#' @param X		   the object to iterate over. Currently only \code{list} objects are supported
+#' @param FUN      the R function to be run
+#' @param env      R environment or list storing variables that will be exported and might be used in the function call
+#' @param loadPackages character vector of packages to load before executing the function
+#' @param Rexec    the command that is used to run the R script that is generated
+#' @param name     a name for the execution that will be used as identifier and prefix for the jobs that are run
+#' @param ...      optional arguments to \code{FUN}
+#' @param cleanUp  should the directory structure created for running the jobs be deleted when completed
+#' 
+#' @return a list containing the results of \code{FUN} for each element in \code{X}
+#' 
+#' @details
+#' It will create an R script for the commands
+#'
+#' @examples
+#' \donttest{
+#' ll <- lapply(1:20,  identity)
+#' cmdr <- CommandRsystem("partest")
+#' rr <- lapplyExec(cmdr, ll, function(i, b){Sys.sleep(1); print(a); print(b); return(paste("success on job", i, "- status:", b))}, env=list(a="success"), cleanUp=FALSE, b="superduper")
+#' }
+#' @rdname lapplyExec-CommandR-method
+#' @docType methods
+#' @aliases lapplyExec
+#' @aliases lapplyExec,CommandR-method
+#' @author Fabian Mueller
+#' @export
+setMethod("lapplyExec",
+	signature(
+		object="CommandR"
+	),
+	function(
+		object,
+		X,
+		FUN,
+		env=new.env(parent=emptyenv()),
+		loadPackages=.packages(),
+		Rexec="Rscript",
+		name="run",
+		cleanUp=TRUE,
+		...
+	) {
+		if (is.list(env)){
+			if (length(names(env)) != length(env)) logger.error("if env is a list, it must have names")
+			env <- list2env(env, parent=emptyenv())
+		}
+		logger.status("Preparing infrastructure...")
+		lDir <- getLogDir(object)
+		if (is.null(lDir)){
+			lDir <- tempdir()
+		}
+		if (!dir.exists(lDir)) dir.create(lDir)
+		eid <- getHashString(name, useDate=TRUE)
+		baseDir <- file.path(lDir, eid)
+		if (!dir.exists(baseDir)){
+			logger.info(c("running R command using files in directory:", baseDir))
+			dir.create(baseDir)
+		} else {
+			logger.error(c("directory", baseDir, "already exists"))
+		}
+		object@logDir <- file.path(baseDir, "log") #set the logging directory to a subdirectory
+		dir.create(object@logDir)
+		dataDir <- file.path(baseDir, "data")
+		dir.create(dataDir)
+		outDir <- file.path(baseDir, "output")
+		dir.create(outDir)
+
+		# Work in progress
+		fFn <- file.path(dataDir, "fun.rds")
+		saveRDS(FUN, fFn)
+		dFn <- file.path(dataDir, "dotArgs.rds")
+		dotArgs <- list(...)
+		saveRDS(dotArgs, dFn)
+		for (i in seq_along(X)){
+			saveRDS(X[[i]], file.path(dataDir, paste0("x", i, ".rds")))
+		}
+
+		rdFn <- file.path(dataDir, "envir.RData")
+		save(list=ls(envir=env), file=rdFn, envir=env)
+
+		scrptFn <- file.path(baseDir, "run.R")
+		loadPackages <- c(loadPackages, "argparse")
+		scrptLines <- c(
+			paste0("library(", loadPackages, ")"),
+			"",
+			"ap <- ArgumentParser()",
+			"ap$add_argument('-x', action='store', dest='xFile', help='an RDS file storing the object to call the function on')",
+			"ap$add_argument('-f', '--fun', action='store', dest='fFile', help='an RDS file storing the function to run')",
+			"ap$add_argument('-d', '--dots', action='store', dest='dFile', help='an RDS file storing a list of dot arguments (...) to function')",
+			"ap$add_argument('-e', '--envir', action='store', dest='envirFile', help='file containing saved R variables')",
+			"ap$add_argument('-o', '--out', action='store', dest='outFile', help='filename for the output (RDS file)')",
+			"cmdArgs <- ap$parse_args()",
+			"",
+			"load(cmdArgs$envirFile)",
+			"x <- readRDS(cmdArgs$xFile)",
+			"dotList <- readRDS(cmdArgs$dFile)",
+			".f <- readRDS(cmdArgs$fFile)",
+			"",
+			"result <- do.call('.f', c(list(x), dotList))",
+			"saveRDS(result, cmdArgs$outFile)"
+		)
+		writeLines(scrptLines, scrptFn)
+		
+		jobList <- list()
+		for (i in seq_along(X)){
+			jid <- paste0(eid, "_j", i)
+			args <- c(
+				scrptFn,
+				paste("-x", file.path(dataDir, paste0("x", i, ".rds"))),
+				paste("-f", fFn),
+				paste("-d", dFn),
+				paste("-e", rdFn),
+				paste("-o", file.path(outDir, paste0("o", i, ".rds")))
+			)
+			jj <- Job(Rexec, args=args, id=jid)
+			jobList <- c(jobList, list(jj))
+		}
+
+		logger.status("Running command...")
+		execRes <- lexec(object, jobList)
+
+		logger.status("Collecting output...")
+		res <- lapply(seq_along(X), FUN=function(i){
+			readRDS(file.path(outDir, paste0("o", i, ".rds")))
+		})
+
+		if (cleanUp) {
+			unlink(baseDir, recursive=TRUE)
+		}
+		return(res)
+	}
+)
+# library(devtools)
+# load_all("muResearchCode/muPipeR")
+# ll <- lapply(1:20,  identity)
+# cmdr <- CommandRsystem("partest")
+# rr <- lapplyExec(cmdr, ll, function(i, b){Sys.sleep(1); print(a); print(b); return(paste("success on job", i, "- status:", b))}, env=list(a="success"), cleanUp=FALSE, b="superduper")
+
