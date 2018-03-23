@@ -8,7 +8,7 @@ Date: 2018-02-24
 License: GPL-3
 Version: 0.4
 Depends:
-    RnBeads
+    muLogR
 Imports:
     igraph
 Suggests:
