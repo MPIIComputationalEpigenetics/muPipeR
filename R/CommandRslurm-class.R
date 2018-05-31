@@ -83,7 +83,7 @@ CommandRslurm <- function(logDir=NULL, scriptDir=NULL, req=NULL){
 getSlurmJobStatusTab <- function(jids){
 	tmpFn <- tempfile(pattern="squeue", fileext=".tsv")
 	stateStr <- system2("squeue", c("-o", paste0('"', paste(c("%j", "%i", "%T"), collapse="\t"), '"')), stdout=tmpFn)
-	stateTab <- read.table(tmpFn, header=TRUE, sep="\t", stringsAsFactors=FALSE)
+	stateTab <- read.table(tmpFn, header=TRUE, sep="\t", comment.char="", stringsAsFactors=FALSE)
 	unlink(tmpFn)
 
 	stateTab <- stateTab[stateTab[,"NAME"] %in% jids,]
