@@ -118,7 +118,7 @@ getSlurmJobStatus <- function(jids){
 #' @noRd
 waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 	lag <- .config$waitLag
-	initialize.lag  <- 3
+	initialize.lag  <- 10
 	initialize.iter <- 20
 
 	# initial check if all jobs are registered

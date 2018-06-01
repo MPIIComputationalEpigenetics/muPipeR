@@ -2,4 +2,4 @@
 # Configuration and global package options
 ################################################################################
 .config <- new.env()
-.config$waitLag <- 5
+.config$waitLag <- 10
