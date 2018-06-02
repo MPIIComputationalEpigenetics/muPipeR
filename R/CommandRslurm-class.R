@@ -135,6 +135,7 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 		#TODO: maybe hold jobs until all have been submitted
 	}
 	if (initRelease){
+		logger.status("Releasing held jobs...")
 		relCmd <- "scontrol"
 		relRes <- lapply(jids, FUN=function(ss){
 			args <- c("release", paste0('"', paste(paste0("name=", ss), collapse=","), '"'))
@@ -147,7 +148,7 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 	jids.incomplete <- jids
 	while (length(jids.incomplete) > 0){
 		Sys.sleep(lag)
-		jobStatus <- sapply(jids.incomplete, getSlurmJobStatus)
+		jobStatus <- getSlurmJobStatus(jids.incomplete)
 		jids.done <- jids.incomplete[jobStatus %in% c("inactive")]
 		jids.incomplete <- setdiff(jids.incomplete, jids.done)
 	}
