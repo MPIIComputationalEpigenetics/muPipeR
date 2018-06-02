@@ -132,13 +132,13 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 	}
 	if (length(jids.invalid) > 0){
 		logger.error(c("Could not retrieve status for the following jobs (already finished?):", paste(jids.invalid, collapse=",")))
-		#TODO: maybe hold jobs until all have been submitted
 	}
 	if (initRelease){
 		logger.status("Releasing held jobs...")
 		statTab <- getSlurmJobStatusTab(jids)
 		if (nrow(statTab) > 0){
 			system2("scontrol", c("release", paste(statTab[,"JOBID"], collapse=",")))
+			# TODO: if this command line string gets to long, release in chunks
 		}
 
 		# relCmd <- "scontrol"
@@ -297,6 +297,8 @@ setMethod("exec",
 		res <- JobResult(out=sysOut, err=sysErr, status=sysStatus, command=subRes$command)
 		return(res)
 	}
+	# todo: make array jobs possible (for lapplyExec):
+	# https://www.rc.fas.harvard.edu/resources/running-jobs/
 )
 #-------------------------------------------------------------------------------
 #' lexec-methods
