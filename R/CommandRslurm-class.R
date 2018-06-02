@@ -137,8 +137,12 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 		logger.status("Releasing held jobs...")
 		statTab <- getSlurmJobStatusTab(jids)
 		if (nrow(statTab) > 0){
-			system2("scontrol", c("release", paste(statTab[,"JOBID"], collapse=",")))
-			# TODO: if this command line string gets to long, release in chunks
+			chunks <- split(statTab[,"JOBID"], ceiling(1:nrow(statTab)/20))
+			relCmd <- "scontrol"
+			relRes <- lapply(chunks, FUN=function(x){
+				args <- c("release", paste(x, collapse=","))
+				return(system2(relCmd, args))
+			})
 		}
 
 		# relCmd <- "scontrol"
