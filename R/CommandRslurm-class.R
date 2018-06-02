@@ -136,11 +136,16 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 	}
 	if (initRelease){
 		logger.status("Releasing held jobs...")
-		relCmd <- "scontrol"
-		relRes <- lapply(jids, FUN=function(ss){
-			args <- c("release", paste0('"', paste(paste0("name=", ss), collapse=","), '"'))
-			return(system2(relCmd, args))
-		})
+		statTab <- getSlurmJobStatusTab(jids)
+		if (nrow(statTab) > 0){
+			system2("scontrol", c("release", paste(statTab[,"JOBID"], collapse=",")))
+		}
+
+		# relCmd <- "scontrol"
+		# relRes <- lapply(jids, FUN=function(ss){
+		# 	args <- c("release", paste0('"', paste(paste0("name=", ss), collapse=","), '"'))
+		# 	return(system2(relCmd, args))
+		# })
 	}
 	logger.status("Waiting for jobs to complete...")
 	# wait for jobs to complete:
