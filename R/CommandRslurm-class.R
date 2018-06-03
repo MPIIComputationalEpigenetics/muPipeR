@@ -82,8 +82,9 @@ CommandRslurm <- function(logDir=NULL, scriptDir=NULL, req=NULL){
 #' @noRd
 getSlurmJobStatusTab <- function(jids){
 	tmpFn <- tempfile(pattern="squeue", fileext=".tsv")
-	stateStr <- system2("squeue", c("-o", paste0('"', paste(c("%j", "%i", "%T"), collapse="\t"), '"')), stdout=tmpFn)
+	stateStr <- system2("squeue", c("-o", paste0('"', paste(c("%j", "%i", "%T", "%R"), collapse="\t"), '"')), stdout=tmpFn)
 	stateTab <- read.table(tmpFn, header=TRUE, sep="\t", comment.char="", stringsAsFactors=FALSE)
+	colnames(stateTab)[colnames(stateTab)=="NODELIST.REASON."] <- "REASON"
 	unlink(tmpFn)
 
 	stateTab <- stateTab[stateTab[,"NAME"] %in% jids,]
@@ -136,13 +137,23 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 	if (initRelease){
 		logger.status("Releasing held jobs...")
 		statTab <- getSlurmJobStatusTab(jids)
-		if (nrow(statTab) > 0){
-			chunks <- split(statTab[,"JOBID"], ceiling(1:nrow(statTab)/50))
+		statTab <- statTab[grepl("JobHeld", statTab[,"REASON"]),,drop=FALSE]
+		# for some reason only half the jobs get released in one go (strangely every other job) --> iterate until all jobs have been released
+		while (nrow(statTab) > 0){
+			heldJobNames <- statTab[,"NAME"]
+			heldJobIds <- statTab[,"JOBID"]
+			# split the arguments to the release command, so that the string does not get too long
+			chunks <- split(heldJobIds, ceiling(1:length(heldJobIds)/20))
 			relCmd <- "scontrol"
 			relRes <- lapply(chunks, FUN=function(x){
-				args <- c("release", paste(x, collapse=","))
+				args <- c("release", paste0('"', paste(x, collapse=","), '"'))
 				return(system2(relCmd, args))
 			})
+			# check which jobs have not been released
+			Sys.sleep(2)
+			statTab <- getSlurmJobStatusTab(heldJobNames)
+			# print(statTab)
+			statTab <- statTab[grepl("JobHeld", statTab[,"REASON"]),,drop=FALSE]
 		}
 
 		# relCmd <- "scontrol"
