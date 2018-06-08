@@ -17,6 +17,7 @@ Collate:
     'classDefs.R'
     'config.R'
     'utils.R'
+    'parallelProcessing.R'
     'JobResult-class.R'
     'Job-class.R'
     'CommandR-class.R'

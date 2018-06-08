@@ -6,7 +6,7 @@
 \title{lexec-methods}
 \usage{
 \S4method{lexec}{CommandRslurm}(object, jobList, result = FALSE,
-  wait = TRUE, req = NULL)
+  wait = TRUE, req = NULL, array = NULL)
 }
 \arguments{
 \item{object}{\code{\linkS4class{CommandR}} object}
@@ -19,6 +19,8 @@
 if \code{result} is \code{TRUE}}
 
 \item{req}{Resource requirements to the grid engine when submitting the job. Must be a named character vector.}
+
+\item{array}{Submit array jobs: integer vector specifying indices for the submitted jobs}
 }
 \value{
 a list of \code{\linkS4class{JobResult}} objects
