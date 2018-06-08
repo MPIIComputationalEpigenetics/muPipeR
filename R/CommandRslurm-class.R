@@ -107,7 +107,7 @@ getSlurmJobStatusTab <- function(jids, user=""){
 			}
 		)
 		unlink(tmpFn)
-		fail <- !is.null(stateTab)
+		fail <- is.null(stateTab)
 		if (fail){
 			logger.info(c("Cluster is busy. Retrying to get job status table ..."))
 			Sys.sleep(5)
@@ -220,10 +220,11 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE, user=""){
 #' @param req     resource requirements for the submitted job. Must be a named character vector.
 #' @param batchScriptDir directory where the batch script containing the command will be written to
 #' @param hold    should the job be submitted in a held state?
+#' @param array   integer vector specifying indices for the submitted jobs
 #' @return the result of the system call using \link{system2}
 #' @author Fabian Mueller
 #' @noRd
-doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchScriptDir=NULL, hold=FALSE, user=""){
+doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchScriptDir=NULL, hold=FALSE, user="", array=NULL){
 	reqStrs <- NULL
 	if (length(req) > 0) {
 		if (any(is.na(names(req))) || is.null(names(req))){
@@ -275,6 +276,14 @@ doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchS
 	)
 	if (hold){
 		args <- c("--hold", args)
+	}
+	if (!is.null(array)){
+		if (all(array == array[1]:array[length(array)])) {
+			aidxStr <- paste0(array[1], "-", array[length(array)])
+		} else {
+			aidxStr <- paste(array, collapse=",")
+		}
+		args <- c(args, paste0("--array=", aidxStr))
 	}
 	subRes <- system2(subCmd, args)
 	cmd <- paste(subCmd, paste(args, collapse=" "), sep=" ")

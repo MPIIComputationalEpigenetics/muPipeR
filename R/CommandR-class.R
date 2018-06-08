@@ -389,6 +389,9 @@ setMethod("lapplyExec",
 			jj <- Job(Rexec, args=args, id=jid)
 			jobList <- c(jobList, list(jj))
 		}
+		# TODO: Think about using job arrays:
+		# https://www.rc.fas.harvard.edu/resources/running-jobs/
+		# Problem: Arrays are not a general feature that is supported by all CommandR classes. Only CommandRslurm would support this
 
 		while (length(jobList) > 0){
 			logger.status("Executing function on elements ...")
