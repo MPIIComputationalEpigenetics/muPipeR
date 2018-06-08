@@ -7,7 +7,7 @@
 \alias{intialize,CommandRslurm-method}
 \title{CommandRslurm Class}
 \usage{
-CommandRslurm(logDir = NULL, scriptDir = NULL, req = NULL)
+CommandRslurm(logDir = NULL, scriptDir = NULL, req = NULL, user = "")
 }
 \arguments{
 \item{logDir}{log directory}
@@ -16,6 +16,8 @@ CommandRslurm(logDir = NULL, scriptDir = NULL, req = NULL)
 
 \item{req}{default resource requirements. Will be specified for each submitted job, if no
 other requirements are specified. Must be a named character vector.}
+
+\item{user}{optional user name for the slurm cluster (for performance improvements in querying the cluster)}
 }
 \description{
 A child class of \code{\linkS4class{CommandR}} implementing job submission using slurm job scheduling.
