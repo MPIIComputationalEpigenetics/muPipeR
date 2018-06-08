@@ -435,6 +435,9 @@ setMethod("lapplyExec",
 				}
 			}
 			idx <- idx[readFail]
+			if (!arrayJob){
+				jobList <- jobList[readFail]
+			}
 		}
 		names(res) <- names(X)
 
