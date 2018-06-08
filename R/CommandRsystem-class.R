@@ -91,6 +91,8 @@ setMethod("exec",
 		errFile <- path.expand(errFile)
 		
 		sysRes <- system2(getCmd(job), getArgs(job), wait=wait, stdout=logFile, stderr=errFile, ...)
+		print(getCmd(job))
+		print(getArgs(job))
 
 		sysOut <- character()
 		sysErr <- character()
