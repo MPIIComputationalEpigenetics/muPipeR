@@ -284,6 +284,7 @@ doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchS
 	}
 	subRes <- system2(subCmd, args)
 	cmd <- paste(subCmd, paste(args, collapse=" "), sep=" ")
+	print(cmd)
 	res <- list(result=subRes, command=cmd)
 	return(res)
 }
