@@ -186,12 +186,6 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE, user=""){
 			# print(statTab)
 			statTab <- statTab[grepl("JobHeld", statTab[,"REASON"]),,drop=FALSE]
 		}
-
-		# relCmd <- "scontrol"
-		# relRes <- lapply(jids, FUN=function(ss){
-		# 	args <- c("release", paste0('"', paste(paste0("name=", ss), collapse=","), '"'))
-		# 	return(system2(relCmd, args))
-		# })
 	}
 	logger.status("Waiting for jobs to complete...")
 	# wait for jobs to complete:
@@ -220,7 +214,7 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE, user=""){
 #' @param req     resource requirements for the submitted job. Must be a named character vector.
 #' @param batchScriptDir directory where the batch script containing the command will be written to
 #' @param hold    should the job be submitted in a held state?
-#' @param array   integer vector specifying indices for the submitted jobs
+#' @param array   Only if submitting array jobs: integer vector specifying indices for the submitted jobs
 #' @return the result of the system call using \link{system2}
 #' @author Fabian Mueller
 #' @noRd
@@ -342,7 +336,7 @@ setMethod("exec",
 		subRes <- doSbatch(job, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user)
 
 		if (wait){
-			waitForSlurmJobsToTerminate(jid, initRelease=TRUE)
+			waitForSlurmJobsToTerminate(jid, initRelease=TRUE, user=object@user)
 		}
 		if (result){
 			sysOut <- readLines(logFile)
@@ -352,8 +346,6 @@ setMethod("exec",
 		res <- JobResult(out=sysOut, err=sysErr, status=sysStatus, command=subRes$command)
 		return(res)
 	}
-	# todo: make array jobs possible (for lapplyExec):
-	# https://www.rc.fas.harvard.edu/resources/running-jobs/
 )
 #-------------------------------------------------------------------------------
 #' lexec-methods
@@ -368,6 +360,7 @@ setMethod("exec",
 #' @param wait     Flag indicating whether the session should wait for the job to finish before continuing. Will be set to \code{TRUE}
 #'                 if \code{result} is \code{TRUE}
 #' @param req      Resource requirements to the grid engine when submitting the job. Must be a named character vector.
+#' @param array    Submit array jobs: integer vector specifying indices for the submitted jobs
 #' @return a list of \code{\linkS4class{JobResult}} objects
 #'
 #' @rdname lexec-CommandRslurm-method
@@ -384,7 +377,8 @@ setMethod("lexec",
 		jobList,
 		result=FALSE,
 		wait=TRUE,
-		req=NULL
+		req=NULL,
+		array=NULL
 	) {
 		if (result && !wait){
 			logger.warning("wait cannot be FALSE when result is TRUE. --> setting wait<-TRUE")
@@ -392,23 +386,52 @@ setMethod("lexec",
 		}
 		if (is.null(req)) req <- object@req
 
-		subJobList <- lapply(jobList, FUN=function(jj){
-			logStruct <- getLoggingStruct(object, jj)
+		arrayJob <- !is.null(array)
+
+		if (length(jobList) > 1 && arrayJob){
+			logger.error("array jobs currently do not support job list of more than 1 element")
+		}
+
+		scrptDir  <- object@scriptDir
+
+		if (arrayJob){
+			logStruct <- getLoggingStruct(object, jobList[[1]])
 			logFile   <- logStruct$logFile
-			errFile   <- logStruct$errFile
-			jid       <- logStruct$jobId
-			scrptDir  <- object@scriptDir
-			subRes <- doSbatch(jj, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user)
-			rr <- list(
-				jobId=jid,
-				logFile=logFile,
-				errFile=errFile,
-				subRes=subRes
-			)
-			return(rr)
-		})
+			logFile.base <- gsub("\\.log$", "_", logFile)
+			logFile <- paste0(logFile.base, "%a.log")
+			errFile <- paste0(logFile.base, "%a.log.err")
+
+			jids <- logStruct$jobId
+			subRes <- doSbatch(jj, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user, array=array)
+
+			subJobList <- lapply(array, FUN=function(i){
+				rr <- list(
+					jobId=jids,
+					logFile=paste0(logFile.base, i, ".log"),
+					errFile=paste0(logFile.base, i, ".log.err"),
+					subRes=subRes
+				)
+				return(rr)
+			})
+		} else {
+			subJobList <- lapply(jobList, FUN=function(jj){
+				logStruct <- getLoggingStruct(object, jj)
+				logFile   <- logStruct$logFile
+				errFile   <- logStruct$errFile
+				jid       <- logStruct$jobId
+				subRes <- doSbatch(jj, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user)
+				rr <- list(
+					jobId=jid,
+					logFile=logFile,
+					errFile=errFile,
+					subRes=subRes
+				)
+				return(rr)
+			})
+			
+			jids <- sapply(subJobList, FUN=function(x){x[["jobId"]]})
+		}
 		
-		jids <- sapply(subJobList, FUN=function(x){x[["jobId"]]})
 		if (wait){
 			waitForSlurmJobsToTerminate(jids, initRelease=TRUE, user=object@user)
 		}

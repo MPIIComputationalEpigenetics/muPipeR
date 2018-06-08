@@ -376,30 +376,46 @@ setMethod("lapplyExec",
 		writeLines(scrptLines, scrptFn)
 		
 		jobList <- list()
-		for (i in seq_along(X)){
-			jid <- paste0(eid, "_j", i)
+		arrayJob <- is.element("CommandRslurm", class(object))
+		if (arrayJob){
 			args <- c(
 				scrptFn,
-				paste("-x", file.path(dataDir, paste0("x", i, ".rds"))),
+				paste("-x", file.path(dataDir, paste0("x", "${SLURM_ARRAY_TASK_ID}", ".rds"))),
 				paste("-f", fFn),
 				paste("-d", dFn),
 				paste("-e", rdFn),
-				paste("-o", file.path(outDir, paste0("o", i, ".rds")))
+				paste("-o", file.path(outDir, paste0("o", "${SLURM_ARRAY_TASK_ID}", ".rds")))
 			)
-			jj <- Job(Rexec, args=args, id=jid)
-			jobList <- c(jobList, list(jj))
+			jobList <- list(Job(Rexec, args=args, id=eid))
+		} else {
+			for (i in seq_along(X)){
+				jid <- paste0(eid, "_j", i)
+				args <- c(
+					scrptFn,
+					paste("-x", file.path(dataDir, paste0("x", i, ".rds"))),
+					paste("-f", fFn),
+					paste("-d", dFn),
+					paste("-e", rdFn),
+					paste("-o", file.path(outDir, paste0("o", i, ".rds")))
+				)
+				jj <- Job(Rexec, args=args, id=jid)
+				jobList <- c(jobList, list(jj))
+			}
 		}
-		# TODO: Think about using job arrays:
-		# https://www.rc.fas.harvard.edu/resources/running-jobs/
-		# Problem: Arrays are not a general feature that is supported by all CommandR classes. Only CommandRslurm would support this
 
-		while (length(jobList) > 0){
+		idx <- seq_along(X)
+		res <- rep(list(NULL), length(idx))
+		while (length(idx) > 0){
 			logger.status("Executing function on elements ...")
-			execRes <- lexec(object, jobList)
-
+			if (arrayJob) {
+				execRes <- lexec(object, jobList, array=idx)
+			} else {
+				execRes <- lexec(object, jobList)
+			}
+			
 			logger.status("Collecting output ...")
-			readFail <- rep(FALSE, length(X))
-			res <- lapply(seq_along(X), FUN=function(i){
+			readFail <- rep(FALSE, length(idx))
+			for (i in idx){
 				rr <- tryCatch({
 						readRDS(file.path(outDir, paste0("o", i, ".rds")))
 					}, error = function(ee) {
@@ -412,10 +428,15 @@ setMethod("lapplyExec",
 						}
 					}
 				)
-				return(rr)
-			})
-			jobList <- jobList[readFail]
+				if (is.null(rr)){
+					res[i] <- list(NULL)
+				} else {
+					res[[i]] <- rr
+				}
+			}
+			idx <- idx[readFail]
 		}
+		names(res) <- names(X)
 
 		if (cleanUp) {
 			logger.status("Cleaning up ...")
