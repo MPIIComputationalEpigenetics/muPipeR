@@ -401,7 +401,7 @@ setMethod("lapplyExec",
 						readRDS(file.path(outDir, paste0("o", i, ".rds")))
 					}, error = function(ee) {
 						if (ee$message=="error reading from connection"){
-							logger.warning(c("Could not read output from job", i, "(filesystem error?) --> reschedule"))
+							logger.warning(c("Could not read output from job", i, "(filesystem failure?) --> reschedule"))
 							readFail[i] <<- TRUE
 							return(NULL)
 						} else {

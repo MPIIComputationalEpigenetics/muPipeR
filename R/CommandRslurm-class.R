@@ -21,7 +21,8 @@
 setClass("CommandRslurm",
 	slots = list(
 		req   = "characterOrNULL",
-		scriptDir   = "characterOrNULL"
+		scriptDir   = "characterOrNULL",
+		user = "character"
 	),
 	contains="CommandR",
 	package = "muPipeR"
@@ -31,7 +32,8 @@ setMethod("initialize","CommandRslurm",
 		.Object,
 		logDir=NULL,
 		scriptDir=NULL,
-		req=NULL
+		req=NULL,
+		user=""
 	) {
 		if (is.null(logDir)){
 			logDir <- tempdir()
@@ -51,6 +53,7 @@ setMethod("initialize","CommandRslurm",
 		.Object@scriptDir <- scriptDir
 		.Object@handlesJobDeps <- TRUE
 		.Object@req <- req
+		.Object@user <- user
 		.Object
 	}
 )
@@ -58,12 +61,13 @@ setMethod("initialize","CommandRslurm",
 #' @param scriptDir script directory
 #' @param req default resource requirements. Will be specified for each submitted job, if no
 #'            other requirements are specified. Must be a named character vector.
+#' @param user   optional user name for the slurm cluster (for performance improvements in querying the cluster)
 #' 
 #' @name CommandRslurm
 #' @rdname CommandRslurm-class
 #' @aliases intialize,CommandRslurm-method
 #' @export
-CommandRslurm <- function(logDir=NULL, scriptDir=NULL, req=NULL){
+CommandRslurm <- function(logDir=NULL, scriptDir=NULL, req=NULL, user=""){
 	obj <- new("CommandRslurm",
 		logDir, scriptDir, req
 	)
@@ -77,15 +81,18 @@ CommandRslurm <- function(logDir=NULL, scriptDir=NULL, req=NULL){
 #' Query the slurm engine using retrieve a table containing job states for the given
 #' job ids
 #' @param jids   job id(s)
+#' @param user   optional user name for the slurm cluster (for performance improvements in retrieving the job status table)
 #' @return a table containing job names, slurm IDs, and states
 #' @author Fabian Mueller
 #' @noRd
-getSlurmJobStatusTab <- function(jids){
+getSlurmJobStatusTab <- function(jids, user=""){
 	tmpFn <- tempfile(pattern="squeue", fileext=".tsv")
 	stateTab <- NULL
 	fail <- TRUE
+	squeueArgs <- c("-o", paste0('"', paste(c("%j", "%i", "%T", "%R"), collapse="\t"), '"'))
+	if (nchar(user) > 0) squeueArgs <- c("-u", user, squeueArgs)
 	while (fail){
-		stateStr <- system2("squeue", c("-o", paste0('"', paste(c("%j", "%i", "%T", "%R"), collapse="\t"), '"')), stdout=tmpFn, stderr=tmpFn)
+		stateStr <- system2("squeue", squeueArgs, stdout=tmpFn, stderr=tmpFn)
 		# catch "busy cluster" errors
 		stateTab <- tryCatch({
 				read.table(tmpFn, header=TRUE, sep="\t", comment.char="", stringsAsFactors=FALSE)
@@ -117,12 +124,13 @@ getSlurmJobStatusTab <- function(jids){
 #' Query the slurm engine using retrieve the status (known or unknown) 
 #' of the job for a given job id
 #' @param jids   job id(s)
+#' @param user   optional user name for the slurm cluster (for performance improvements in retrieving the job status table)
 #' @return a character string: "known" if the job is still known to the grid engine
 #'         (running or scheduled). "unknown" if not.
 #' @author Fabian Mueller
 #' @noRd
-getSlurmJobStatus <- function(jids){
-	stateTab <- getSlurmJobStatusTab(jids)
+getSlurmJobStatus <- function(jids, user=""){
+	stateTab <- getSlurmJobStatusTab(jids, user=user)
 
 	stateTab <- stateTab[stateTab[,"STATE"] %in% c("PENDING", "RUNNING", "COMPLETING", "CONFIGURING", "SUSPENDED"),]
 	res <- ifelse(jids %in% stateTab[,"NAME"], "active", "inactive")
@@ -136,10 +144,11 @@ getSlurmJobStatus <- function(jids){
 #' Initially checks whether it can find all jobs on the grid engine
 #' @param jids   character vector of job ids
 #' @param initRelease should held up jobs be released after the initial check?
+#' @param user   optional user name for the slurm cluster (for performance improvements in retrieving the job status table)
 #' @return nothing of particular interest
 #' @author Fabian Mueller
 #' @noRd
-waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
+waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE, user=""){
 	lag <- .config$waitLag
 	initialize.lag  <- 10
 	initialize.iter <- 20
@@ -148,7 +157,7 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 	jids.invalid <- jids
 	while (initialize.iter > 0 && length(jids.invalid) > 0){
 		Sys.sleep(initialize.lag)
-		jobStatus <- getSlurmJobStatus(jids.invalid)
+		jobStatus <- getSlurmJobStatus(jids.invalid, user=user)
 		jids.valid <- jids.invalid[jobStatus %in% c("active")]
 		jids.invalid <- setdiff(jids.invalid, jids.valid)
 		initialize.iter <- initialize.iter - 1
@@ -158,7 +167,7 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 	}
 	if (initRelease){
 		logger.status("Releasing held jobs...")
-		statTab <- getSlurmJobStatusTab(jids)
+		statTab <- getSlurmJobStatusTab(jids, user=user)
 		statTab <- statTab[grepl("JobHeld", statTab[,"REASON"]),,drop=FALSE]
 		# for some reason only half the jobs get released in one go (strangely every other job) --> iterate until all jobs have been released
 		while (nrow(statTab) > 0){
@@ -173,7 +182,7 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 			})
 			# check which jobs have not been released
 			Sys.sleep(2)
-			statTab <- getSlurmJobStatusTab(heldJobNames)
+			statTab <- getSlurmJobStatusTab(heldJobNames, user=user)
 			# print(statTab)
 			statTab <- statTab[grepl("JobHeld", statTab[,"REASON"]),,drop=FALSE]
 		}
@@ -190,7 +199,7 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 	jids.incomplete <- jids
 	while (length(jids.incomplete) > 0){
 		Sys.sleep(lag)
-		jobStatus <- getSlurmJobStatus(jids.incomplete)
+		jobStatus <- getSlurmJobStatus(jids.incomplete, user=user)
 		jids.done <- jids.incomplete[jobStatus %in% c("inactive")]
 		jids.incomplete <- setdiff(jids.incomplete, jids.done)
 	}
@@ -214,7 +223,7 @@ waitForSlurmJobsToTerminate <- function(jids, initRelease=FALSE){
 #' @return the result of the system call using \link{system2}
 #' @author Fabian Mueller
 #' @noRd
-doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchScriptDir=NULL, hold=FALSE){
+doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchScriptDir=NULL, hold=FALSE, user=""){
 	reqStrs <- NULL
 	if (length(req) > 0) {
 		if (any(is.na(names(req))) || is.null(names(req))){
@@ -226,7 +235,7 @@ doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchS
 	depJobIds <- do.call("c", lapply(getDepJobs(job), getId))
 	depStr <- NULL
 	if (length(depJobIds)>0){
-		jTab <- getSlurmJobStatusTab(depJobIds)
+		jTab <- getSlurmJobStatusTab(depJobIds, user=user)
 		slurmIdStr <- paste(unique(jTab[,"JOBID"]), collapse=":")
 		depStr <- paste(c("--dependency", paste0("afterany:", slurmIdStr)), collapse="=")
 	}
@@ -321,7 +330,7 @@ setMethod("exec",
 		sysErr <- character()
 		sysStatus <- 0L
 
-		subRes <- doSbatch(job, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir, hold=wait)
+		subRes <- doSbatch(job, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user)
 
 		if (wait){
 			waitForSlurmJobsToTerminate(jid, initRelease=TRUE)
@@ -380,7 +389,7 @@ setMethod("lexec",
 			errFile   <- logStruct$errFile
 			jid       <- logStruct$jobId
 			scrptDir  <- object@scriptDir
-			subRes <- doSbatch(jj, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir, hold=wait)
+			subRes <- doSbatch(jj, logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user)
 			rr <- list(
 				jobId=jid,
 				logFile=logFile,
@@ -392,7 +401,7 @@ setMethod("lexec",
 		
 		jids <- sapply(subJobList, FUN=function(x){x[["jobId"]]})
 		if (wait){
-			waitForSlurmJobsToTerminate(jids, initRelease=TRUE)
+			waitForSlurmJobsToTerminate(jids, initRelease=TRUE, user=object@user)
 		}
 
 		jr.default <- JobResult()
