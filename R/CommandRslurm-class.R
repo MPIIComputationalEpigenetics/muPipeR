@@ -271,16 +271,16 @@ doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchS
 	args <- c(
 		scrptFn
 	)
-	if (hold){
-		args <- c("--hold", args)
-	}
 	if (!is.null(array)){
 		if (all(array == array[1]:array[length(array)])) {
 			aidxStr <- paste0(array[1], "-", array[length(array)])
 		} else {
 			aidxStr <- paste(array, collapse=",")
 		}
-		args <- c(args, paste0("--array=", aidxStr))
+		args <- c(paste0("--array=", aidxStr), args)
+	}
+	if (hold){
+		args <- c("--hold", args)
 	}
 	subRes <- system2(subCmd, args)
 	cmd <- paste(subCmd, paste(args, collapse=" "), sep=" ")
