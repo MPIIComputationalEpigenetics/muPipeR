@@ -69,7 +69,7 @@ setMethod("initialize","CommandRslurm",
 #' @export
 CommandRslurm <- function(logDir=NULL, scriptDir=NULL, req=NULL, user=""){
 	obj <- new("CommandRslurm",
-		logDir, scriptDir, req
+		logDir, scriptDir, req, user
 	)
 	return(obj)
 }
