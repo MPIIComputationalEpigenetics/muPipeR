@@ -402,7 +402,7 @@ setMethod("lexec",
 			errFile <- paste0(logFile.base, "%a.log.err")
 
 			jids <- logStruct$jobId
-			subRes <- doSbatch(jobList[[1]], logFile, errFile, jobName=jid, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user, array=array)
+			subRes <- doSbatch(jobList[[1]], logFile, errFile, jobName=jids, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user, array=array)
 
 			subJobList <- lapply(array, FUN=function(i){
 				rr <- list(
