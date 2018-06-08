@@ -82,10 +82,32 @@ CommandRslurm <- function(logDir=NULL, scriptDir=NULL, req=NULL){
 #' @noRd
 getSlurmJobStatusTab <- function(jids){
 	tmpFn <- tempfile(pattern="squeue", fileext=".tsv")
-	stateStr <- system2("squeue", c("-o", paste0('"', paste(c("%j", "%i", "%T", "%R"), collapse="\t"), '"')), stdout=tmpFn)
-	stateTab <- read.table(tmpFn, header=TRUE, sep="\t", comment.char="", stringsAsFactors=FALSE)
+	stateTab <- NULL
+	fail <- TRUE
+	while (fail){
+		stateStr <- system2("squeue", c("-o", paste0('"', paste(c("%j", "%i", "%T", "%R"), collapse="\t"), '"')), stdout=tmpFn, stderr=tmpFn)
+		# catch "busy cluster" errors
+		stateTab <- tryCatch({
+				read.table(tmpFn, header=TRUE, sep="\t", comment.char="", stringsAsFactors=FALSE)
+			}, error = function(ee) {
+				ss <- readLines(tmpFn)
+				clusterBusy <- any(grepl("slurm_load_jobs error: Socket timed out", ss))
+				if (clusterBusy){
+					return(NULL)
+				} else {
+					logger.error(c("Could not get SLURM job status table because:", ee$message))
+				}
+			}
+		)
+		unlink(tmpFn)
+		fail <- !is.null(stateTab)
+		if (fail){
+			logger.info(c("Cluster is busy. Retrying to get job status table ..."))
+			Sys.sleep(5)
+		}
+	}
 	colnames(stateTab)[colnames(stateTab)=="NODELIST.REASON."] <- "REASON"
-	unlink(tmpFn)
+	
 
 	stateTab <- stateTab[stateTab[,"NAME"] %in% jids,]
 	return(stateTab)

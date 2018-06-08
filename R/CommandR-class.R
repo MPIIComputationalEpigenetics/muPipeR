@@ -390,13 +390,29 @@ setMethod("lapplyExec",
 			jobList <- c(jobList, list(jj))
 		}
 
-		logger.status("Executing function on elements ...")
-		execRes <- lexec(object, jobList)
+		while (length(jobList) > 0){
+			logger.status("Executing function on elements ...")
+			execRes <- lexec(object, jobList)
 
-		logger.status("Collecting output ...")
-		res <- lapply(seq_along(X), FUN=function(i){
-			readRDS(file.path(outDir, paste0("o", i, ".rds")))
-		})
+			logger.status("Collecting output ...")
+			readFail <- rep(FALSE, length(X))
+			res <- lapply(seq_along(X), FUN=function(i){
+				rr <- tryCatch({
+						readRDS(file.path(outDir, paste0("o", i, ".rds")))
+					}, error = function(ee) {
+						if (ee$message=="error reading from connection"){
+							logger.warning(c("Could not read output from job", i, "(filesystem error?) --> reschedule"))
+							readFail[i] <<- TRUE
+							return(NULL)
+						} else {
+							logger.error(c("Could not read output from job", i, "because:", ee$message))
+						}
+					}
+				)
+				return(rr)
+			})
+			jobList <- jobList[readFail]
+		}
 
 		if (cleanUp) {
 			logger.status("Cleaning up ...")
