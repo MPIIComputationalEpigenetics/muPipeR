@@ -107,16 +107,15 @@ getSlurmJobStatusTab <- function(jids, user=""){
 			}
 		)
 		unlink(tmpFn)
-		fail <- is.null(stateTab)
+		fail <- is.null(stateTab) || !is.data.frame(stateTab) || !all(c("NAME", "JOBID", "STATE", "NODELIST.REASON.") %in% colnames(stateTab))
 		if (fail){
 			logger.info(c("Cluster is busy. Retrying to get job status table ..."))
 			Sys.sleep(5)
 		}
 	}
 	colnames(stateTab)[colnames(stateTab)=="NODELIST.REASON."] <- "REASON"
-	
 
-	stateTab <- stateTab[stateTab[,"NAME"] %in% jids,]
+	stateTab <- stateTab[stateTab[,"NAME"] %in% jids,,drop=FALSE]
 	return(stateTab)
 }
 #' getSlurmJobStatus
