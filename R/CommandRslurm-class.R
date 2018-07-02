@@ -243,9 +243,9 @@ doSbatch <- function(job, logFile, errFile, jobName=getId(job), req=NULL, batchS
 	reqLines <- paste("#SBATCH", reqLines)
 
 	runCmd <- getCallString(job)
-	if (is.null(array)){
-		runCmd <- paste("srun", runCmd)
-	}
+	# if (is.null(array)){
+	# 	runCmd <- paste("srun", runCmd)
+	# }
 	scrptFn <- NULL
 	if (is.null(batchScriptDir) || !dir.exists(batchScriptDir)){
 		logger.warning(c("No directory for batch script submission has been specified or it does not exist."))
