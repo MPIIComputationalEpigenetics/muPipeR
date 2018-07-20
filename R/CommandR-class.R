@@ -355,7 +355,7 @@ setMethod("lapplyExec",
 		scrptFn <- file.path(baseDir, "run.R")
 		loadPackages <- c(loadPackages, "argparse")
 		scrptLines <- c(
-			paste0("library(", loadPackages, ")"),
+			paste0("suppressPackageStartupMessages(library(", loadPackages, "))"),
 			"",
 			"ap <- ArgumentParser()",
 			"ap$add_argument('-x', action='store', dest='xFile', help='an RDS file storing the object to call the function on')",
