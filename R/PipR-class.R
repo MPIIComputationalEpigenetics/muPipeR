@@ -716,13 +716,13 @@ setMethod("resetStep",
 # Run the pipeline
 ################################################################################
 # TODO: comment back in once RnBeads generic Definition of "run" has been updated
-# if (!isGeneric("run")) {
+if (!isGeneric("run")) {
 	setGeneric(
 		"run",
 		function(object, ...) standardGeneric("run"),
 		signature=c("object")
 	)
-# }
+}
 #' run-methods
 #'
 #' Run all incomplete analysis steps in the pipeline
