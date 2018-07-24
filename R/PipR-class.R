@@ -740,6 +740,7 @@ setMethod("resetStep",
 #'                    in the pipeline's status directory.
 #' @param logCommands Logical indicating whether the commands that have been used should be
 #'                    written to a log file.
+#' @param ...         arguments passed on to \code{lexec}
 #' @return the modified pipeline object with updated step states.
 #' @rdname run-PipR-method
 #' @docType methods
@@ -782,8 +783,8 @@ setMethod("run",
 				}
 
 				jobList <- stepDetails[["jobs"]]
-				unsetDeps <- FALSE
-				# unsetDeps <- !missing(wait) && wait # unset job dependencies if waiting for the previous step anyways
+				# unsetDeps <- FALSE
+				unsetDeps <- !missing(wait) && wait # unset job dependencies if waiting for the previous step anyways
 				for (i in 1:length(jobList)){
 					#parse variables in args
 					if (length(jobList[[i]]@args > 0)){

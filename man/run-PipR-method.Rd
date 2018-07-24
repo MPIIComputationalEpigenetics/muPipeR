@@ -24,6 +24,8 @@ in the pipeline's status directory.}
 
 \item{logCommands}{Logical indicating whether the commands that have been used should be
 written to a log file.}
+
+\item{...}{arguments passed on to \code{lexec}}
 }
 \value{
 the modified pipeline object with updated step states.
