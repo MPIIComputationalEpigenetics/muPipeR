@@ -7,7 +7,8 @@
 \title{run-methods}
 \usage{
 \S4method{run}{PipR}(object, cmdr = CommandRsystem(logDir = getDir(object,
-  "log")), createDirs = TRUE, saveStatus = TRUE, logCommands = FALSE, ...)
+  "log")), createDirs = TRUE, saveStatus = TRUE, logCommands = FALSE,
+  wait = TRUE)
 }
 \arguments{
 \item{object}{\code{\linkS4class{PipR}} object}
@@ -25,7 +26,7 @@ in the pipeline's status directory.}
 \item{logCommands}{Logical indicating whether the commands that have been used should be
 written to a log file.}
 
-\item{...}{arguments passed on to \code{lexec}}
+\item{wait}{wait for jobs in a step to terminate before continuing to the next one}
 }
 \value{
 the modified pipeline object with updated step states.

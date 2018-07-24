@@ -740,7 +740,7 @@ if (!isGeneric("run")) {
 #'                    in the pipeline's status directory.
 #' @param logCommands Logical indicating whether the commands that have been used should be
 #'                    written to a log file.
-#' @param ...         arguments passed on to \code{lexec}
+#' @param wait        wait for jobs in a step to terminate before continuing to the next one
 #' @return the modified pipeline object with updated step states.
 #' @rdname run-PipR-method
 #' @docType methods
@@ -758,7 +758,7 @@ setMethod("run",
 		createDirs=TRUE,
 		saveStatus=TRUE,
 		logCommands=FALSE,
-		...
+		wait=TRUE
 	) {
 		if (!inherits(cmdr, "CommandR")){
 			logger.error("[run,PipR] Invalid argument: cmdr")
@@ -803,7 +803,7 @@ setMethod("run",
 					}
 				}
 
-				rr <- lexec(cmdr, jobList, ...)
+				rr <- lexec(cmdr, jobList, wait=wait)
 				object@steps[[step]][["jobResults"]] <- rr
 				object@steps[[step]][["status"]] <- "complete"
 
