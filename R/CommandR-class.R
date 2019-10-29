@@ -335,6 +335,7 @@ setMethod("lapplyExec",
 		dir.create(outDir)
 
 		logger.status("Saving input data ...")
+		environment(FUN) <- new.env(parent=emptyenv()) # todo: check if this works
 		fFn <- file.path(dataDir, "fun.rds")
 		saveRDS(FUN, fFn)
 		dFn <- file.path(dataDir, "dotArgs.rds")
@@ -369,6 +370,7 @@ setMethod("lapplyExec",
 			"x <- readRDS(cmdArgs$xFile)",
 			"dotList <- readRDS(cmdArgs$dFile)",
 			".f <- readRDS(cmdArgs$fFile)",
+			"environment(.f) <- globalenv()", # todo: check if this works
 			"",
 			"result <- do.call('.f', c(list(x), dotList))",
 			"saveRDS(result, cmdArgs$outFile)"
