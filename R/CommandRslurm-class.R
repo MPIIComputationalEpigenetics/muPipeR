@@ -398,26 +398,29 @@ setMethod("lexec",
 		scrptDir  <- object@scriptDir
 
 		if (arrayJob){
-			subJobList <- unlist(lapply(seq_along(jobList), FUN=function(k){
+			subJobList <- list()
+			jids <- c()
+			for (k in seq_along(jobList)){
 				logStruct <- getLoggingStruct(object, jobList[[k]])
 				logFile   <- logStruct$logFile
 				logFile.base <- gsub("\\.log$", "_", logFile)
 				logFile <- paste0(logFile.base, "%a.log")
 				errFile <- paste0(logFile.base, "%a.log.err")
 
-				jids <- logStruct$jobId
-				subRes <- doSbatch(jobList[[k]], logFile, errFile, jobName=jids, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user, array=array[[k]])
+				jid_batch <- logStruct$jobId
+				subRes <- doSbatch(jobList[[k]], logFile, errFile, jobName=jid_batch, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user, array=array[[k]])
 
-				rr <- lapply(array, FUN=function(i){
+				subJobList <- c(subJobList, lapply(array, FUN=function(i){
 					list(
-						jobId=jids,
+						jobId=jid_batch,
 						logFile=paste0(logFile.base, i, ".log"),
 						errFile=paste0(logFile.base, i, ".log.err"),
 						subRes=subRes
 					)
-				})
-				return(rr)
-			}), recursive=FALSE)
+				}))
+				jids <- c(jids, jid_batch)
+			}
+
 		} else {
 			subJobList <- lapply(jobList, FUN=function(jj){
 				logStruct <- getLoggingStruct(object, jj)
