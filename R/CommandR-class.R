@@ -349,7 +349,7 @@ setMethod("lapplyExec",
 				file.path(dataDir, paste0("x_", k, "_", 1:length(batchL[[k]]), ".rds"))
 			}))
 			oFilenames <- unlist(lapply(seq_along(batchL), FUN=function(k){
-				file.path(dataDir, paste0("o_", k, "_", 1:length(batchL[[k]]), ".rds"))
+				file.path(outDir, paste0("o_", k, "_", 1:length(batchL[[k]]), ".rds"))
 			}))
 			arrayIdx <- lapply(batchL, FUN=function(x){1:length(x)})
 		}
