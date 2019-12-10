@@ -389,7 +389,6 @@ setMethod("lexec",
 		}
 		if (is.null(req)) req <- object@req
 
-		maxArraySize <- 800L
 		arrayJob <- !is.null(array)
 
 		if (length(jobList) > 1 && arrayJob){
@@ -406,36 +405,17 @@ setMethod("lexec",
 			errFile <- paste0(logFile.base, "%a.log.err")
 
 			jids <- logStruct$jobId
-			if (length(array) > maxArraySize){
-				# split by maximum length of an array job (e.g. Sherlock does not support too many indices in an array)
-				array_split <- split(array, ceiling(seq_along(array)/maxArraySize))
-				names(array_split) <- NULL
-				subResL <- lapply(seq_along(array_split), FUN=function(k){
-					doSbatch(jobList[[1]], logFile, errFile, jobName=jids, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user, array=array_split[[k]])
-				})
-				subJobList <- unlist(lapply(seq_along(array_split), FUN=function(k){
-					lapply(array_split[[k]], FUN=function(i){
-						rr <- list(
-							jobId=jids,
-							logFile=paste0(logFile.base, i, ".log"),
-							errFile=paste0(logFile.base, i, ".log.err"),
-							subRes=subResL[[k]]
-						)
-						return(rr)
-					})
-				}), recursive=FALSE)
-			} else {
-				subRes <- doSbatch(jobList[[1]], logFile, errFile, jobName=jids, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user, array=array)
-				subJobList <- lapply(array, FUN=function(i){
-					rr <- list(
-						jobId=jids,
-						logFile=paste0(logFile.base, i, ".log"),
-						errFile=paste0(logFile.base, i, ".log.err"),
-						subRes=subRes
-					)
-					return(rr)
-				})
-			}
+			subRes <- doSbatch(jobList[[1]], logFile, errFile, jobName=jids, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user, array=array)
+
+			subJobList <- lapply(array, FUN=function(i){
+				rr <- list(
+					jobId=jids,
+					logFile=paste0(logFile.base, i, ".log"),
+					errFile=paste0(logFile.base, i, ".log.err"),
+					subRes=subRes
+				)
+				return(rr)
+			})
 		} else {
 			subJobList <- lapply(jobList, FUN=function(jj){
 				logStruct <- getLoggingStruct(object, jj)
