@@ -308,6 +308,7 @@ setMethod("lapplyExec",
 			if (length(names(env)) != length(env)) logger.error("if env is a list, it must have names")
 			env <- list2env(env, parent=emptyenv())
 		}
+		arrayJob <- is.element("CommandRslurm", class(object))
 		logger.status("Preparing infrastructure ...")
 		lDir <- getLogDir(object)
 		if (is.null(lDir)){
@@ -334,6 +335,25 @@ setMethod("lapplyExec",
 		outDir <- file.path(baseDir, "output")
 		dir.create(outDir)
 
+		# process in batches (some Slurm configurations don't allow for more than 1000 jobs in an array)
+		maxBatchSize <- 800L
+		batchL <- split(seq_along(X), ceiling(seq_along(X)/maxBatchSize))
+		names(batchL) <- NULL
+
+		xFilenames <- file.path(dataDir, paste0("x_", seq_along(X), ".rds"))
+		oFilenames <- file.path(outDir, paste0("o_", seq_along(X), ".rds"))
+		arrayIdx <- seq_along(X)
+		batched <- arrayJob && length(X) > maxBatchSize
+		if (batched){
+			xFilenames <- unlist(lapply(seq_along(batchL), FUN=function(k){
+				file.path(dataDir, paste0("x_", k, "_", 1:length(batchL[[k]]), ".rds"))
+			}))
+			oFilenames <- unlist(lapply(seq_along(batchL), FUN=function(k){
+				file.path(dataDir, paste0("o_", k, "_", 1:length(batchL[[k]]), ".rds"))
+			}))
+			arrayIdx <- lapply(batchL, FUN=function(x){1:length(x)})
+		}
+
 		logger.status("Saving input data ...")
 		environment(FUN) <- new.env(parent=emptyenv()) # todo: check if this works
 		fFn <- file.path(dataDir, "fun.rds")
@@ -341,8 +361,9 @@ setMethod("lapplyExec",
 		dFn <- file.path(dataDir, "dotArgs.rds")
 		dotArgs <- list(...)
 		saveRDS(dotArgs, dFn)
+		
 		for (i in seq_along(X)){
-			saveRDS(X[[i]], file.path(dataDir, paste0("x", i, ".rds")))
+			saveRDS(X[[i]], xFilenames[i])
 		}
 
 		rdFn <- file.path(dataDir, "envir.RData")
@@ -378,27 +399,42 @@ setMethod("lapplyExec",
 		writeLines(scrptLines, scrptFn)
 		
 		jobList <- list()
-		arrayJob <- is.element("CommandRslurm", class(object))
+		
 		if (arrayJob){
-			args <- c(
-				scrptFn,
-				paste("-x", file.path(dataDir, paste0("x", "${SLURM_ARRAY_TASK_ID}", ".rds"))),
-				paste("-f", fFn),
-				paste("-d", dFn),
-				paste("-e", rdFn),
-				paste("-o", file.path(outDir, paste0("o", "${SLURM_ARRAY_TASK_ID}", ".rds")))
-			)
-			jobList <- list(Job(Rexec, args=args, id=eid))
+			if (batched){
+				jobList <- lapply(seq_along(batchL), FUN=function(k){
+					args <- c(
+						scrptFn,
+						paste("-x", file.path(dataDir, paste0("x_", k, "_${SLURM_ARRAY_TASK_ID}", ".rds"))),
+						paste("-f", fFn),
+						paste("-d", dFn),
+						paste("-e", rdFn),
+						paste("-o", file.path(outDir, paste0("o_", k, "_${SLURM_ARRAY_TASK_ID}", ".rds")))
+					)
+					return(Job(Rexec, args=args, id=paste0(eid, "_", k)))
+				})
+			} else {
+				args <- c(
+					scrptFn,
+					paste("-x", file.path(dataDir, paste0("x_", "${SLURM_ARRAY_TASK_ID}", ".rds"))),
+					paste("-f", fFn),
+					paste("-d", dFn),
+					paste("-e", rdFn),
+					paste("-o", file.path(outDir, paste0("o_", "${SLURM_ARRAY_TASK_ID}", ".rds")))
+				)
+				jobList <- list(Job(Rexec, args=args, id=eid))
+			}
+			
 		} else {
 			for (i in seq_along(X)){
 				jid <- paste0(eid, "_j", i)
 				args <- c(
 					scrptFn,
-					paste("-x", file.path(dataDir, paste0("x", i, ".rds"))),
+					paste("-x", file.path(dataDir, paste0("x_", i, ".rds"))),
 					paste("-f", fFn),
 					paste("-d", dFn),
 					paste("-e", rdFn),
-					paste("-o", file.path(outDir, paste0("o", i, ".rds")))
+					paste("-o", file.path(outDir, paste0("o_", i, ".rds")))
 				)
 				jj <- Job(Rexec, args=args, id=jid)
 				jobList <- c(jobList, list(jj))
@@ -410,7 +446,7 @@ setMethod("lapplyExec",
 		while (length(idx) > 0){
 			logger.status("Executing function on elements ...")
 			if (arrayJob) {
-				execRes <- lexec(object, jobList, array=idx)
+				execRes <- lexec(object, jobList, array=arrayIdx) # TODO
 			} else {
 				execRes <- lexec(object, jobList)
 			}
@@ -419,7 +455,7 @@ setMethod("lapplyExec",
 			readFail <- rep(FALSE, length(idx))
 			for (i in idx){
 				rr <- tryCatch({
-						readRDS(file.path(outDir, paste0("o", i, ".rds")))
+						readRDS(oFilenames[i])
 					}, error = function(ee) {
 						if (ee$message=="error reading from connection"){
 							logger.warning(c("Could not read output from job", i, "(filesystem failure?) --> reschedule"))

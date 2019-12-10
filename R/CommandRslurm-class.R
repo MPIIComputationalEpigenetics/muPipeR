@@ -391,31 +391,33 @@ setMethod("lexec",
 
 		arrayJob <- !is.null(array)
 
-		if (length(jobList) > 1 && arrayJob){
-			logger.error("array jobs currently do not support job list of more than 1 element")
+		if (length(jobList) == 1 && arrayJob && !is.list(array)){
+			array <- list(array)
 		}
 
 		scrptDir  <- object@scriptDir
 
 		if (arrayJob){
-			logStruct <- getLoggingStruct(object, jobList[[1]])
-			logFile   <- logStruct$logFile
-			logFile.base <- gsub("\\.log$", "_", logFile)
-			logFile <- paste0(logFile.base, "%a.log")
-			errFile <- paste0(logFile.base, "%a.log.err")
+			subJobList <- unlist(lapply(seq_along(jobList), FUN=function(k){
+				logStruct <- getLoggingStruct(object, jobList[[k]])
+				logFile   <- logStruct$logFile
+				logFile.base <- gsub("\\.log$", "_", logFile)
+				logFile <- paste0(logFile.base, "%a.log")
+				errFile <- paste0(logFile.base, "%a.log.err")
 
-			jids <- logStruct$jobId
-			subRes <- doSbatch(jobList[[1]], logFile, errFile, jobName=jids, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user, array=array)
+				jids <- logStruct$jobId
+				subRes <- doSbatch(jobList[[k]], logFile, errFile, jobName=jids, req=req, batchScriptDir=scrptDir, hold=wait, user=object@user, array=array[[k]])
 
-			subJobList <- lapply(array, FUN=function(i){
-				rr <- list(
-					jobId=jids,
-					logFile=paste0(logFile.base, i, ".log"),
-					errFile=paste0(logFile.base, i, ".log.err"),
-					subRes=subRes
-				)
+				rr <- lapply(array, FUN=function(i){
+					list(
+						jobId=jids,
+						logFile=paste0(logFile.base, i, ".log"),
+						errFile=paste0(logFile.base, i, ".log.err"),
+						subRes=subRes
+					)
+				})
 				return(rr)
-			})
+			}), recursive=FALSE)
 		} else {
 			subJobList <- lapply(jobList, FUN=function(jj){
 				logStruct <- getLoggingStruct(object, jj)
